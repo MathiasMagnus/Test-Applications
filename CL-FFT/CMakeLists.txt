@@ -16,10 +16,12 @@ set (Files_SRCS ${PROJECT_SOURCE_DIR}/src/Source.cpp)
 add_executable (${PROJECT_NAME} ${Files_HDRS} ${Files_SRCS})
 
 # Append our project's include directory to the "#include <>" paths
-target_include_directories (${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inc/)
+target_include_directories (${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/inc/
+                                                    ${CLFFT_INCLUDE_DIRS})
 
 # Link dependant libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC OpenCL::OpenCL clFFT)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenCL::OpenCL
+                                              ${CLFFT_LIBRARIES})
 
 # Create filters for IDEs
 set_target_properties (${PROJECT_NAME} PROPERTIES FOLDER "Test")
