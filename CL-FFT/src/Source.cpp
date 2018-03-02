@@ -82,7 +82,7 @@ int main()
     prngs.push_back(std::default_random_engine{});
 	std::generate_n(std::back_inserter(x),
                     batch * N * N,
-                    [=]() { return dist(prngs.at(0)); });
+                    [=]() mutable { return dist(prngs.at(0)); });
 
 	// Multi-threaded
 	//{
