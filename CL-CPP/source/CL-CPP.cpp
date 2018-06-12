@@ -1,53 +1,55 @@
+// CL-CPP includes
 #include <CL-CPP.hpp>
 
-// Checks weather device is DP calable or not
-bool is_device_dp_capable(const cl::Device& device)
-{
-	return (device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_khr_fp64")) ||
-		(device.getInfo<CL_DEVICE_EXTENSIONS>().find("cl_amd_fp64"));
-}
 
-
-int main()
+int main(int argc, char* argv[])
 {
 	try // Any error results in program termination
 	{
+		TCLAP::CmdLine cli{ "Test-Applications: CL-CPP" };
+
+		TCLAP::ValueArg<std::size_t> plat_id{ "", "platform", "Platform ID to use", false, 0, "[unsigned int]", cli };
+		TCLAP::ValueArg<std::size_t> dev_id{ "", "device", "Device ID to use", false, 0, "[unsigned int]", cli };
+
+		std::vector<std::string> valid_dev_strings{ "cpu", "gpu", "acc" };
+		TCLAP::ValuesConstraint<std::string> valid_dev_constraint{ valid_dev_strings };
+		TCLAP::ValueArg<std::string> dev_type_arg{ "", "type","Device type to use", false, "all", &valid_dev_constraint , cli, };
+
+		cli.parse(argc, argv);
+
 		std::vector<cl::Platform> platforms;
 		cl::Platform::get(&platforms);
 
-		for (const auto& platform : platforms) std::cout << "Found platform: " << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+		if (platforms.empty()) throw std::runtime_error{ "No OpenCL platforms found." };
 
-		// Choose platform with most DP capable devices
-		auto plat = std::max_element(platforms.cbegin(), platforms.cend(), [](const cl::Platform& lhs, const cl::Platform& rhs)
+		std::cout << "Found platform" << (platforms.size() > 1 ? "s:\n" : ":");
+		for (const auto& platform : platforms)
+			std::cout << (platforms.size() > 1 ? "\t" : " ") << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+
+		cl::Platform plat = platforms.at(plat_id.getValue());
+		std::cout << "Selected platform: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+
+		auto dev_type = [](std::string in) -> cl_device_type
 		{
-			auto dp_counter = [](const cl::Platform& platform)
-			{
-				std::vector<cl::Device> devices;
-				platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+			if (in == "all") return CL_DEVICE_TYPE_ALL;
+			else if (in == "cpu") return CL_DEVICE_TYPE_CPU;
+			else if (in == "gpu") return CL_DEVICE_TYPE_GPU;
+			else if (in == "acc") return CL_DEVICE_TYPE_ACCELERATOR;
+			else throw std::logic_error{ "Unkown device type after cli parse. Should not have happened." };
+		}(dev_type_arg.getValue());
 
-				return std::count_if(devices.cbegin(), devices.cend(), is_device_dp_capable);
-			};
-
-			return dp_counter(lhs) < dp_counter(rhs);
-		});
-
-		if (plat != platforms.cend())
-			std::cout << "Selected platform: " << plat->getInfo<CL_PLATFORM_VENDOR>() << std::endl;
-		else
-			throw std::runtime_error{ "No double-precision capable device found." };
-
-		// Obtain DP capable devices
 		std::vector<cl::Device> devices;
-		plat->getDevices(CL_DEVICE_TYPE_ALL, &devices);
+		plat.getDevices(dev_type, &devices);
 
-		std::remove_if(devices.begin(), devices.end(), [](const cl::Device& dev) {return !is_device_dp_capable(dev); });
+		std::cout << "Found device" << (devices.size() > 1 ? "s:\n" : ":");
+		for (const auto& device : devices)
+			std::cout << (devices.size() > 1 ? "\t" : " ") << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
 		cl::Device device = devices.at(0);
-
 		std::cout << "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
 		// Create context and queue
-		std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((*plat)()), 0 };
+		std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((plat)()), 0 };
 		cl::Context context{ devices, props.data() };
 
 		cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
@@ -61,7 +63,7 @@ int main()
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
 			                                       std::istreambuf_iterator<char>{} } };
 
-		program.build({ device }, "-cl-std=CL1.0"); // Any warning counts as a compilation error, simplest kernel syntax
+		program.build({ device }, "-cl-std=CL1.0 -cl-opt-disable");
 
 		auto vecAdd = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "vecAdd");
 
@@ -69,7 +71,7 @@ int main()
 		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
 																		//     promises no data is lost, silences compiler warning
 		std::valarray<cl_float> vec_x(chainlength),
-			                     vec_y(chainlength);
+			                    vec_y(chainlength);
 		cl_float a = 2.0;
 
 		// Fill arrays with random values between 0 and 100
@@ -121,6 +123,11 @@ int main()
 			markers.second != std::cend(ref)) throw std::runtime_error{ "Validation failed." };
 
 	}
+	catch (TCLAP::ArgException &e) // If cli parsing error occurs
+	{
+		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+		std::exit(EXIT_FAILURE);
+	}
 	catch (cl::BuildError error) // If kernel failed to build
 	{
 		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
@@ -137,7 +144,7 @@ int main()
 
 		std::exit(error.err());
 	}
-	catch (cl::Error error) // If any OpenCL error happes
+	catch (cl::Error error) // If any OpenCL error occurs
 	{
 		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
 

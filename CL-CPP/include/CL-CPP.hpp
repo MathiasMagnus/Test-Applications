@@ -9,6 +9,9 @@
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 #include <CL/cl2.hpp>
 
+// TCLAP includes
+#include <tclap/CmdLine.h>
+
 // C++ Standard includes
 #include <vector>
 #include <valarray>
