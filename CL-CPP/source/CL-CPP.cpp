@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
 			                                       std::istreambuf_iterator<char>{} } };
 
-		program.build({ device }, "-cl-std=CL1.0 -cl-opt-disable");
+		program.build({ device }, "-cl-opt-disable");
 
 		auto vecAdd = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "vecAdd");
 

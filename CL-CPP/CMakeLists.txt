@@ -41,7 +41,7 @@ set_target_properties (${PROJECT_NAME} PROPERTIES CXX_STANDARD 14
 target_compile_definitions (${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_SCL_SECURE_NO_WARNINGS>)
 
 # cl2.hpp contains attributes on basic types (cl_int, cl_double, etc.) that GCC does not like
-target_compile_options (${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:GNU>:"-Wno-ignored-attributes">)
+target_compile_options (${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-ignored-attributes>)
 
 # Create filters for IDEs
 set_target_properties (${PROJECT_NAME} PROPERTIES FOLDER "OpenCL")
