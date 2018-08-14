@@ -53,7 +53,18 @@ int main()
         //       of multi-device or single-device but multi-queue (concurrent computation and data movement)
         //       code, the optional nature of this facility may cause arcane errors.
 
-        auto async_error_handler = [](cl::sycl::exception_list errors){ for (auto error : errors) throw error; };
+        auto async_error_handler = [](cl::sycl::exception_list errors)
+        {
+            for (auto error : errors)
+            {
+                try { std::rethrow_exception(error); }
+                catch (cl::sycl::exception e)
+                {
+                    std::cerr << e.what() << std::endl;
+                    std::exit(e.get_cl_code());
+                }
+            }
+        };
 
         cl::sycl::context ctx{ dev, async_error_handler };
 
