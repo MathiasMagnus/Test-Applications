@@ -12,5 +12,7 @@ set_target_properties(${PROJECT_NAME}
                       PROPERTIES CXX_STANDARD 14
                                  CXX_STANDARD_REQUIRED ON)
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE _ALLOW_COMPILER_AND_STL_VERSION_MISMATCH)
+
 add_sycl_to_target(TARGET ${PROJECT_NAME}
                    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/Main.cpp)
