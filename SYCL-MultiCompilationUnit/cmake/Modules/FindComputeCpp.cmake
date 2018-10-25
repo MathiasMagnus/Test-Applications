@@ -2,7 +2,7 @@
 # FindComputeCpp
 #---------------
 #
-#   Copyright 2016 Codeplay Software Ltd.
+#   Copyright 2016-2018 Codeplay Software Ltd.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use these files except in compliance with the License.
@@ -58,43 +58,53 @@ find_package(OpenCL REQUIRED)
 
 # Find ComputeCpp package
 
-# Try to read the environment variable
-if(DEFINED ENV{COMPUTECPP_DIR})
-  if(NOT ComputeCpp_DIR)
-    set(ComputeCpp_ROOT_DIR $ENV{COMPUTECPP_DIR} CACHE PATH
-      "The root of the ComputeCpp install")
+if(DEFINED ComputeCpp_DIR)
+  set(computecpp_find_hint ${ComputeCpp_DIR})
+elseif(DEFINED ENV{COMPUTECPP_DIR})
+  set(computecpp_find_hint $ENV{COMPUTECPP_DIR})
+endif()
+
+# Used for running executables on the host
+set(computecpp_host_find_hint ${computecpp_find_hint})
+
+if(CMAKE_CROSSCOMPILING)
+  # ComputeCpp_HOST_DIR is used to find executables that are run on the host
+  if(DEFINED ComputeCpp_HOST_DIR)
+    set(computecpp_host_find_hint ${ComputeCpp_HOST_DIR})
+  elseif(DEFINED ENV{COMPUTECPP_HOST_DIR})
+    set(computecpp_host_find_hint $ENV{COMPUTECPP_HOST_DIR})
   endif()
-else()
-  set(ComputeCpp_ROOT_DIR ${ComputeCpp_DIR} CACHE PATH
-    "The root of the ComputeCpp install")
 endif()
 
 find_program(ComputeCpp_DEVICE_COMPILER_EXECUTABLE compute++
-  PATHS ${ComputeCpp_ROOT_DIR}
+  HINTS ${computecpp_host_find_hint}
   PATH_SUFFIXES bin)
 
 find_program(ComputeCpp_INFO_EXECUTABLE computecpp_info
-  PATHS ${ComputeCpp_ROOT_DIR}
+  HINTS ${computecpp_host_find_hint}
   PATH_SUFFIXES bin)
 
 find_library(COMPUTECPP_RUNTIME_LIBRARY
   NAMES ComputeCpp ComputeCpp_vs2015
-  PATHS ${ComputeCpp_ROOT_DIR}
+  HINTS ${computecpp_find_hint}
   PATH_SUFFIXES lib
   DOC "ComputeCpp Runtime Library")
 
 find_library(COMPUTECPP_RUNTIME_LIBRARY_DEBUG
   NAMES ComputeCpp ComputeCpp_vs2015_d
-  #NAMES ComputeCpp ComputeCpp_vs2015
-  PATHS ${ComputeCpp_ROOT_DIR}
+  HINTS ${computecpp_find_hint}
   PATH_SUFFIXES lib
   DOC "ComputeCpp Debug Runtime Library")
 
 find_path(ComputeCpp_INCLUDE_DIRS
   NAMES "CL/sycl.hpp"
-  PATHS ${ComputeCpp_ROOT_DIR}/include
+  HINTS ${computecpp_find_hint}/include
   DOC "The ComputeCpp include directory")
 get_filename_component(ComputeCpp_INCLUDE_DIRS ${ComputeCpp_INCLUDE_DIRS} ABSOLUTE)
+
+get_filename_component(computecpp_canonical_root_dir "${ComputeCpp_INCLUDE_DIRS}/.." ABSOLUTE)
+set(ComputeCpp_ROOT_DIR "${computecpp_canonical_root_dir}" CACHE PATH
+    "The root of the ComputeCpp install")
 
 execute_process(COMMAND ${ComputeCpp_INFO_EXECUTABLE} "--dump-version"
   OUTPUT_VARIABLE ComputeCpp_VERSION
@@ -121,13 +131,56 @@ execute_process(COMMAND ${ComputeCpp_INFO_EXECUTABLE}
   "--dump-device-compiler-flags"
   OUTPUT_VARIABLE COMPUTECPP_DEVICE_COMPILER_FLAGS
   RESULT_VARIABLE ComputeCpp_INFO_EXECUTABLE_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
-list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS "-sycl-target ${COMPUTECPP_BITCODE}")
+# convert to list before appending
+# (VERBATIM arg passing to execute_process will go crazy over mixed string-list syntax)
+string(REPLACE " " ";" COMPUTECPP_DEVICE_COMPILER_FLAGS ${COMPUTECPP_DEVICE_COMPILER_FLAGS})
+list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS} -sycl-target ${COMPUTECPP_BITCODE})
 
 if(NOT ComputeCpp_INFO_EXECUTABLE_RESULT EQUAL "0")
   message(FATAL_ERROR "compute++ flags - Error obtaining compute++ flags!")
 else()
   mark_as_advanced(COMPUTECPP_COMPILER_FLAGS)
 endif()
+
+# Check if the hosted STL of MSVC is compatible with ComputeCpp
+if(MSVC)
+  set(ComputeCpp_STL_CHECK_SRC __STL_check)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${ComputeCpp_STL_CHECK_SRC}.cpp
+    "#include <ios>\n"
+	"int main() { return 0; }\n")
+  execute_process(
+    COMMAND ${ComputeCpp_DEVICE_COMPILER_EXECUTABLE}
+            ${COMPUTECPP_DEVICE_COMPILER_FLAGS}
+            -isystem ${ComputeCpp_INCLUDE_DIRS}
+            -o ${ComputeCpp_STL_CHECK_SRC}.sycl
+            -c ${ComputeCpp_STL_CHECK_SRC}.cpp
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	RESULT_VARIABLE ComputeCpp_STL_CHECK_RESULT
+	ERROR_QUIET
+	OUTPUT_QUIET)
+  if(NOT ${ComputeCpp_STL_CHECK_RESULT} EQUAL 0)
+    # Try disabling compiler version checks
+    execute_process(
+      COMMAND ${ComputeCpp_DEVICE_COMPILER_EXECUTABLE}
+              ${COMPUTECPP_DEVICE_COMPILER_FLAGS}
+              -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+              -isystem ${ComputeCpp_INCLUDE_DIRS}
+              -o ${ComputeCpp_STL_CHECK_SRC}.cpp.sycl
+			  -c ${ComputeCpp_STL_CHECK_SRC}.cpp
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+	  RESULT_VARIABLE ComputeCpp_STL_CHECK_RESULT
+	  ERROR_QUIET
+	  OUTPUT_QUIET)
+    if(NOT ${ComputeCpp_STL_CHECK_RESULT} EQUAL 0)
+      message(STATUS "Device compiler cannot consume hosted STL headers. Using any parts of the STL will likely result in device compiler errors.")
+	else()
+	  message(STATUS "Device compiler does not meet certain STL version requirements. Disabling version checks and hoping for the best.")
+      list(APPEND COMPUTECPP_DEVICE_COMPILER_FLAGS -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH)
+    endif()
+  endif()
+  file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${ComputeCpp_STL_CHECK_SRC}.cpp
+              ${CMAKE_CURRENT_BINARY_DIR}/${ComputeCpp_STL_CHECK_SRC}.cpp.sycl)
+endif(MSVC)
 
 find_package_handle_standard_args(ComputeCpp
   REQUIRED_VARS ComputeCpp_ROOT_DIR
@@ -158,6 +211,7 @@ if(CMAKE_CROSSCOMPILING)
 endif()
 
 separate_arguments(COMPUTECPP_DEVICE_COMPILER_FLAGS)
+list(REMOVE_ITEM COMPUTECPP_DEVICE_COMPILER_FLAGS "-emit-llvm")
 message(STATUS "compute++ flags - ${COMPUTECPP_DEVICE_COMPILER_FLAGS}")
 
 if(NOT TARGET OpenCL::OpenCL)
@@ -168,14 +222,16 @@ if(NOT TARGET OpenCL::OpenCL)
   )
 endif()
 
-add_library(ComputeCpp::ComputeCpp UNKNOWN IMPORTED)
-set_target_properties(ComputeCpp::ComputeCpp PROPERTIES
-  IMPORTED_LOCATION_DEBUG          "${COMPUTECPP_RUNTIME_LIBRARY_DEBUG}"
-  IMPORTED_LOCATION_RELWITHDEBINFO "${COMPUTECPP_RUNTIME_LIBRARY_DEBUG}"
-  IMPORTED_LOCATION                "${COMPUTECPP_RUNTIME_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES    "${ComputeCpp_INCLUDE_DIRS}"
-  INTERFACE_LINK_LIBRARIES         "OpenCL::OpenCL" 
-)
+if(NOT TARGET ComputeCpp::ComputeCpp)
+  add_library(ComputeCpp::ComputeCpp UNKNOWN IMPORTED)
+  set_target_properties(ComputeCpp::ComputeCpp PROPERTIES
+    IMPORTED_LOCATION_DEBUG          "${COMPUTECPP_RUNTIME_LIBRARY_DEBUG}"
+    IMPORTED_LOCATION_RELWITHDEBINFO "${COMPUTECPP_RUNTIME_LIBRARY_DEBUG}"
+    IMPORTED_LOCATION                "${COMPUTECPP_RUNTIME_LIBRARY}"
+    INTERFACE_INCLUDE_DIRECTORIES    "${ComputeCpp_INCLUDE_DIRS}"
+    INTERFACE_LINK_LIBRARIES         "OpenCL::OpenCL"
+  )
+endif()
 
 # This property allows targets to specify that their sources should be
 # compiled with the integration header included after the user's
@@ -234,6 +290,7 @@ function(__build_ir)
 
   # Set the path to the integration header.
   set(outputSyclFile ${CMAKE_CURRENT_BINARY_DIR}/${sourceFileName}.sycl)
+  set(depFileName ${CMAKE_CURRENT_BINARY_DIR}/${sourceFileName}.sycl.d)
 
   set(include_directories "$<TARGET_PROPERTY:${SDK_BUILD_IR_TARGET},INCLUDE_DIRECTORIES>")
   set(compile_definitions "$<TARGET_PROPERTY:${SDK_BUILD_IR_TARGET},COMPILE_DEFINITIONS>")
@@ -281,19 +338,29 @@ function(__build_ir)
     endforeach()
   endif()
 
+  # Depfile support was only added in CMake 3.7
+  # CMake throws an error if it is unsupported by the generator (i. e. not ninja)
+  if((NOT CMAKE_VERSION VERSION_LESS 3.7.0) AND
+          CMAKE_GENERATOR MATCHES "Ninja")
+    file(RELATIVE_PATH relOutputFile ${CMAKE_BINARY_DIR} ${outputSyclFile})
+    set(generate_depfile -MMD -MF ${depFileName} -MT ${relOutputFile})
+    set(enable_depfile DEPFILE ${depFileName})
+  endif()
+
   # Add custom command for running compute++
   add_custom_command(
     OUTPUT ${outputSyclFile}
     COMMAND ${ComputeCpp_DEVICE_COMPILER_EXECUTABLE}
             ${COMPUTECPP_DEVICE_COMPILER_FLAGS}
-            -isystem ${ComputeCpp_INCLUDE_DIRS}
             ${device_compiler_includes}
             ${generated_include_directories}
             ${generated_compile_definitions}
             -o ${outputSyclFile}
             -c ${SDK_BUILD_IR_SOURCE}
+            ${generate_depfile}
     DEPENDS ${ir_dependencies}
     IMPLICIT_DEPENDS CXX ${SDK_BUILD_IR_SOURCE}
+    ${enable_depfile}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Building ComputeCpp integration header file ${outputSyclFile}")
 
@@ -356,7 +423,7 @@ function(__build_ir)
     if(CMAKE_GENERATOR MATCHES "Visual Studio")
       set(forceIncludeFlags "/FI\"${includedFile}\" /TP")
     else()
-      set(forceIncludeFlags "/FI ${includedFile} /TP")
+      set(forceIncludeFlags /FI ${includedFile} /TP)
     endif()
   else()
       set(forceIncludeFlags "-include ${includedFile} -x c++")
@@ -406,7 +473,8 @@ function(add_sycl_to_target)
     )
     MATH(EXPR fileCounter "${fileCounter} + 1")
   endforeach()
-  target_link_libraries(${SDK_ADD_SYCL_TARGET}
-    PUBLIC ComputeCpp::ComputeCpp
-  )
+  set_property(TARGET ${SDK_ADD_SYCL_TARGET}
+    APPEND PROPERTY LINK_LIBRARIES ComputeCpp::ComputeCpp)
+  set_property(TARGET ${SDK_ADD_SYCL_TARGET}
+    APPEND PROPERTY INTERFACE_LINK_LIBRARIES ComputeCpp::ComputeCpp)
 endfunction(add_sycl_to_target)
