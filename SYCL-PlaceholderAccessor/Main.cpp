@@ -7,7 +7,7 @@
 #include <algorithm>
 
 
-namespace kernels { class SYCL_GenericLambda; }
+namespace kernels { class SYCL_PlaceholderAccessor; }
 
 namespace util
 {
@@ -18,6 +18,21 @@ namespace util
     {
         return cl::sycl::accessor<T, Dim, Mode, Target, cl::sycl::access::placeholder::true_t>{ buffer };
     }
+}
+
+template <int Dim, typename F, typename... Placeholders>
+void invoke_on_device(cl::sycl::queue queue, cl::sycl::range<Dim> range, F f, Placeholders... placeholders)
+{
+    queue.submit([&](cl::sycl::handler& cgh)
+    {
+        int dummy[] = { 0, (cgh.require(placeholders), 0)... };
+        (void)dummy;
+
+        cgh.parallel_for<kernels::SYCL_PlaceholderAccessor>(range, [=](cl::sycl::item<1> i)
+        {
+            f(i);
+        });
+    });
 }
 
 int main()
@@ -108,15 +123,7 @@ int main()
             };
         };
 
-        queue.submit([&](cl::sycl::handler& cgh)
-        {
-            cgh.require(v);
-
-            cgh.parallel_for<kernels::SYCL_GenericLambda>(v.get_range(), [=](cl::sycl::item<1> i)
-            {
-                f(1.f)(2.f)(i);
-            });
-        });
+        invoke_on_device(queue, v.get_range(), f(1.f)(2.f), v);
 
         // Verify
         //
