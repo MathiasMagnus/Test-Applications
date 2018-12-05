@@ -20,7 +20,7 @@ namespace util
     }
 }
 
-template <int Dim, typename F, typename... Placeholders>
+template <typename KernelName, int Dim, typename F, typename... Placeholders>
 void invoke_on_device(cl::sycl::queue queue, cl::sycl::range<Dim> range, F f, Placeholders... placeholders)
 {
     queue.submit([&](cl::sycl::handler& cgh)
@@ -28,7 +28,7 @@ void invoke_on_device(cl::sycl::queue queue, cl::sycl::range<Dim> range, F f, Pl
         int dummy[] = { 0, (cgh.require(placeholders), 0)... };
         (void)dummy;
 
-        cgh.parallel_for<kernels::SYCL_PlaceholderAccessor>(range, [=](cl::sycl::item<1> i)
+        cgh.parallel_for<KernelName>(range, [=](cl::sycl::item<1> i)
         {
             f(i);
         });
@@ -123,7 +123,7 @@ int main()
             };
         };
 
-        invoke_on_device(queue, v.get_range(), f(1.f)(2.f), v);
+        invoke_on_device<kernels::SYCL_PlaceholderAccessor>(queue, v.get_range(), f(1.f)(2.f), v);
 
         // Verify
         //
