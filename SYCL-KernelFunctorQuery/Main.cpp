@@ -14,14 +14,29 @@ namespace kernels { class SYCL_KernelFunctorQuery; }
 
 struct obscenely_large_object
 {
-    cl::sycl::vec<double, 16> m_data;
+    cl::sycl::vec<double, 4> m_data1;
+    cl::sycl::vec<double, 4> m_data2;
+    cl::sycl::vec<double, 4> m_data3;
+    cl::sycl::vec<double, 4> m_data4;
+    cl::sycl::vec<double, 4> m_data5;
+    cl::sycl::vec<double, 4> m_data6;
+    cl::sycl::vec<double, 4> m_data7;
+    cl::sycl::vec<double, 4> m_data8;
+    cl::sycl::vec<double, 4> m_data9;
+    cl::sycl::vec<double, 4> m_data10;
+    cl::sycl::vec<double, 4> m_data11;
+    cl::sycl::vec<double, 4> m_data12;
+    cl::sycl::vec<double, 4> m_data13;
+    cl::sycl::vec<double, 4> m_data14;
+    cl::sycl::vec<double, 4> m_data15;
+    cl::sycl::vec<double, 4> m_data16;
 };
 
 int main()
 {
     try
     {
-        std::cout << "SYCL runtime using cl::sycl::default_selector..." << std::endl;
+        std::cout << "SYCL runtime using cl::sycl::default_selector" << std::endl;
 
         cl::sycl::device dev{ cl::sycl::default_selector{} };
 
@@ -78,21 +93,22 @@ int main()
             {
                 obscenely_large_object o = obj[0];
 
-                res[0] = o.m_data.s0() +
-                         o.m_data.s1() +
-                         o.m_data.s2() +
-                         o.m_data.s3() +
-                         o.m_data.s4() +
-                         o.m_data.s5() +
-                         o.m_data.s6() +
-                         o.m_data.s7() +
-                         o.m_data.s8() +
-                         o.m_data.s9() +
-                         o.m_data.sA() +
-                         o.m_data.sB() +
-                         o.m_data.sC() +
-                         o.m_data.sD() +
-                         o.m_data.sE();
+                res[0] = cl::sycl::length(o.m_data1) +
+		         cl::sycl::length(o.m_data2) +
+		         cl::sycl::length(o.m_data3) +
+		         cl::sycl::length(o.m_data4) +
+		         cl::sycl::length(o.m_data5) +
+		         cl::sycl::length(o.m_data6) +
+		         cl::sycl::length(o.m_data7) +
+		         cl::sycl::length(o.m_data8) +
+		         cl::sycl::length(o.m_data9) +
+		         cl::sycl::length(o.m_data10) +
+		         cl::sycl::length(o.m_data11) +
+		         cl::sycl::length(o.m_data12) +
+		         cl::sycl::length(o.m_data13) +
+		         cl::sycl::length(o.m_data14) +
+		         cl::sycl::length(o.m_data15) +
+		         cl::sycl::length(o.m_data16);
             });
         });
     }
