@@ -95,34 +95,26 @@ int main()
             {
                 obscenely_large_object o = obj[0];
 
-                auto length_sq = [](const cl::sycl::vec<double, 4> v)
-                {
-                    return v.x() * v.x() +
-                           v.y() * v.y() +
-                           v.z() * v.z() +
-                           v.w() * v.w();
-                };
-
-                res[0] = length_sq(o.m_data1) +
-		                 length_sq(o.m_data2) +
-		                 length_sq(o.m_data3) +
-		                 length_sq(o.m_data4) +
-		                 length_sq(o.m_data5) +
-		                 length_sq(o.m_data6) +
-		                 length_sq(o.m_data7) +
-		                 length_sq(o.m_data8) +
-		                 length_sq(o.m_data9) +
-		                 length_sq(o.m_data10) +
-		                 length_sq(o.m_data11) +
-		                 length_sq(o.m_data12) +
-		                 length_sq(o.m_data13) +
-		                 length_sq(o.m_data14) +
-		                 length_sq(o.m_data15) +
-                         length_sq(o.m_data16) +
-                         length_sq(o.m_data17) +
-                         length_sq(o.m_data18) +
-                         length_sq(o.m_data19) + 
-                         length_sq(o.m_data20);
+                res[0] = cl::sycl::length(o.m_data1) +
+                         cl::sycl::length(o.m_data2) +
+                         cl::sycl::length(o.m_data3) +
+                         cl::sycl::length(o.m_data4) +
+                         cl::sycl::length(o.m_data5) +
+                         cl::sycl::length(o.m_data6) +
+                         cl::sycl::length(o.m_data7) +
+                         cl::sycl::length(o.m_data8) +
+                         cl::sycl::length(o.m_data9) +
+                         cl::sycl::length(o.m_data10) +
+                         cl::sycl::length(o.m_data11) +
+                         cl::sycl::length(o.m_data12) +
+                         cl::sycl::length(o.m_data13) +
+                         cl::sycl::length(o.m_data14) +
+                         cl::sycl::length(o.m_data15) +
+                         cl::sycl::length(o.m_data16) +
+                         cl::sycl::length(o.m_data17) +
+                         cl::sycl::length(o.m_data18) +
+                         cl::sycl::length(o.m_data19) + 
+                         cl::sycl::length(o.m_data20);
             });
         });
     }
