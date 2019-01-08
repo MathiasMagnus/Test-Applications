@@ -30,6 +30,10 @@ struct obscenely_large_object
     cl::sycl::vec<double, 4> m_data14;
     cl::sycl::vec<double, 4> m_data15;
     cl::sycl::vec<double, 4> m_data16;
+    cl::sycl::vec<double, 4> m_data17;
+    cl::sycl::vec<double, 4> m_data18;
+    cl::sycl::vec<double, 4> m_data19;
+    cl::sycl::vec<double, 4> m_data20;
 };
 
 int main()
@@ -114,7 +118,11 @@ int main()
 		                 length_sq(o.m_data13) +
 		                 length_sq(o.m_data14) +
 		                 length_sq(o.m_data15) +
-		                 length_sq(o.m_data16);
+                         length_sq(o.m_data16) +
+                         length_sq(o.m_data17) +
+                         length_sq(o.m_data18) +
+                         length_sq(o.m_data19) + 
+                         length_sq(o.m_data20);
             });
         });
     }
