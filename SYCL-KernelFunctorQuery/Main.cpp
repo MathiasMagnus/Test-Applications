@@ -10,7 +10,7 @@
 
 
 // Kernel name is complete type to be able to obtain it's name via typeid()
-namespace kernels { class SYCL_KernelFunctorQuery; }
+namespace kernels { class SYCL_KernelFunctorQuery{}; }
 
 struct obscenely_large_object
 {
@@ -64,10 +64,8 @@ int main()
         std::vector< obscenely_large_object> vec(1);
 
         // Buffers exist only to prevent consant folding and allowing proper kernel invocation
-        cl::sycl::buffer<double> buf_res{ cl::sycl::range<1>{ 1 } };//,
-                                          //cl::sycl::property::buffer::context_bound{ ctx } };
-        cl::sycl::buffer<obscenely_large_object> buf_obj{ vec.begin(), vec.end() };//,
-                                                          //cl::sycl::property::buffer::context_bound { ctx } };
+        cl::sycl::buffer<double> buf_res{ cl::sycl::range<1>{ 1 } };
+        cl::sycl::buffer<obscenely_large_object> buf_obj{ vec.begin(), vec.end() };
 
         cl::sycl::program prog{ ctx };
         prog.build_with_kernel_type<kernels::SYCL_KernelFunctorQuery>();
@@ -78,7 +76,7 @@ int main()
             dev.get_info<cl::sycl::info::device::max_work_group_size>() << std::endl;
         // Maximum WGS for given kernel on given device. (See: sycl-1.2.1.pdf: p.177, table 4.85)
         std::cout << "Maximum work-group size for " <<
-            "kernels::SYCL_KernelFunctorQuery" << " on device " <<
+            typeid(kernels::SYCL_KernelFunctorQuery).name() << " on device " <<
             dev.get_info<cl::sycl::info::device::name>() << ": " <<
             krn.get_work_group_info<cl::sycl::info::kernel_work_group::work_group_size>(dev) << std::endl;
 
