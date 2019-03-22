@@ -50,14 +50,15 @@ namespace cl
 			return clfftBakePlan(plHandle, 1u, &commQueueFFT(), nullptr, nullptr);
 		}
 
+        cl::Buffer tmp;
 		clfftStatus enqueueTransform(clfftPlanHandle& plHandle,
 									 clfftDirection dir,
 									 cl::CommandQueue& queue,
 									 const std::vector<cl::Event>& waitEvents,
 									 cl::Event& outEvent,
 									 cl::Buffer& inputBuffer,
-									 cl::Buffer& outputBuffer = cl::Buffer(),
-									 cl::Buffer& tmpBuffer = cl::Buffer())
+									 cl::Buffer& outputBuffer = tmp,
+									 cl::Buffer& tmpBuffer = tmp)
 		{
 			std::vector<cl_event> cl_waitEvents(waitEvents.size());
 			std::transform(waitEvents.cbegin(), waitEvents.cend(), std::back_inserter(cl_waitEvents), [](const cl::Event& evnt) {return evnt();});
