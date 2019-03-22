@@ -3,7 +3,7 @@
 int main()
 {
 	// Test params
-	std::size_t batch = 256;
+	std::size_t batch = 64;
 	std::size_t N = 1024;
 
 	// Host side container and init
@@ -51,6 +51,7 @@ int main()
 	std::cout << "Selected platform:\n\n\t" << platform.getInfo<CL_PLATFORM_NAME>() << "\n" << std::endl;
 
 	platform.getDevices(dev_type, &devices);
+	devices.resize(1);
 	std::cout << "Selected devices:\n\n";
 	for (auto& device : devices)
 		std::cout << "\t" << device.getInfo<CL_DEVICE_NAME>() << std::endl;
