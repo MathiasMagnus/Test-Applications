@@ -17,7 +17,7 @@ set (Files_KRNS ${CMAKE_CURRENT_SOURCE_DIR}/kernel/saxpy.cl)
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/include/CL-CPP-config.in.hpp"
                 "${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp")
 
-list (APPEND ${Files_HDRS} "${CMAKE_BINARY_DIR}/include/OpenCL-C++-API-config.hpp")
+list (APPEND ${Files_HDRS} "${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp")
 
 # Specify executable sources
 add_executable (${PROJECT_NAME} ${Files_HDRS}
