@@ -10,7 +10,7 @@ endif (MSVC)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 find_package(ComputeCpp)
 
-add_executable(${PROJECT_NAME} Main.cpp)
+add_executable(${PROJECT_NAME} Reduce.hpp Main.cpp)
 
 set_target_properties(${PROJECT_NAME}
                       PROPERTIES CXX_STANDARD 14

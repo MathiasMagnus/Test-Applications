@@ -1,171 +1,163 @@
 // SYCL include
 #include <CL/sycl.hpp>
 
+#include "Reduce.hpp"
+
 // Standard C++ includes
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <numeric>      // std::iota
 
 
 namespace kernels { class SYCL_Reduce; }
 
-namespace util
+
+/// <summary>Performs a reduction operation on the provided dataset in a non-destructive manner. Result is written to <c>result</c>.</summary>
+///
+template <typename KernelName,
+          typename ZeroElem,
+          typename F,
+          typename SourceType,
+          typename ResultType,
+          typename... Placeholders>
+auto reduce(cl::sycl::queue queue,
+            ZeroElem zero,
+            F f,
+            cl::sycl::buffer<SourceType> source,
+            cl::sycl::buffer<ResultType> result,
+            cl::sycl::range<1> work_group_size)
 {
-    /// <summary>Utility function to reduce redundant type specification when creating placeholder accessors.</summary>
-    ///
-    template <cl::sycl::access::mode Mode, cl::sycl::access::target Target, typename T, int Dim, typename Allocator>
-    auto make_placeholder_accessor(cl::sycl::buffer<T, Dim, Allocator>& buffer)
+    auto device_max_wgs_for_kernel = [&]()
     {
-        return cl::sycl::accessor<T, Dim, Mode, Target, cl::sycl::access::placeholder::true_t>{ buffer };
-    }
-}
+        cl::sycl::program prog{ queue.get_info<cl::sycl::info::queue::context>() };
+        prog.build_with_kernel_type<KernelName>();
+        cl::sycl::kernel krn{ prog.get_kernel<KernelName>() };
+        
+        return krn.get_work_group_info<cl::sycl::info::kernel_work_group::work_group_size>(queue.get_info<cl::sycl::info::queue::device>());
+    }();
 
-template <typename KernelName, typename ZeroElem, typename F, typename SourceBuffer, typename ResultBuffer, typename... Placeholders>
-auto reduce(cl::sycl::queue queue, F f, SourceBuffer& source, ResultBuffer& result)
-{
-    using source_type = typename SourceBuffer::value_type;
-
-    std::size_t max_wgs = queue.get_info<cl::sycl::info::queue::device>().get_info<cl::sycl::info::device::max_work_group_size>();
-
-    cl::sycl::buffer<source_type> temp{ source.get_range() };
-
-    queue.submit([&](cl::sycl::handler& cpy)
-    {
-        cpy.copy(source.get_access<cl::sycl::access::mode::read>(cpy),
-                 temp.get_access<cl::sycl::access::mode::discard_write>(cpy));
-    });
-
-    auto reduction_step = [=](auto source,
-                              auto dest,
+    auto reduction_step = [=](auto from,
+                              auto to,
                               std::size_t l)
     {
         queue.submit([&](cl::sycl::handler& cgh)
         {
-            auto local = cl::sycl::accessor<source_type, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::local>{ cgh };
-            auto src = cl::sycl::accessor<source_type, 1, cl::sycl::access::mode::read, cl::sycl::access::target::global_buffer>{ cgh };
+            auto local = cl::sycl::accessor<SourceType, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::local>{ cl::sycl::range<1>{ l }, cgh };
+            auto src = from.template get_access<cl::sycl::access::mode::read, cl::sycl::access::target::global_buffer>( cgh );
+            auto dst = to.template get_access<cl::sycl::access::mode::discard_write, cl::sycl::access::target::global_buffer>( cgh );
 
-            cgh.parallel_for_work_group(source.get_range(), local.get_range(), [=](cl::sycl::group<1> grp)
+            cgh.parallel_for_work_group<KernelName>(cl::sycl::range<1>{ gws }, cl::sycl::range<1>{ l }, [=](cl::sycl::group<1> grp)
             {
-                grp.async_work_group_copy(src.get_pointer() + grp.get(0) * grp.get_group_range(0), local.get_pointer());
+                grp.async_work_group_copy(src.get_pointer() + grp.get(0) * local.get_range(0),
+                                          local.get_range().size(),
+                                          local.get_pointer()).wait();
+
+                grp.parallel_for_work_item([=](cl::sycl::h_item<1> i)
+                {
+                    local[i] = f(local[i], zero);
+                });
+
+                for (std::size_t I = grp.get_group_range().get(0) / 2 ; I > 1 ; I /= 2) grp.parallel_for_work_item([=](cl::sycl::h_item<1> i)
+                {
+                    if (i.get_local_id().get(0) < I)
+                        local[i] = f(local[i], local[I + i]);
+                });
+
+                grp.async_work_group_copy(local.get_pointer(),
+                                          1,
+                                          dst.get_pointer() + grp.get(0)).wait();
             });
         });
     };
 
-
-
-    queue.submit([&](cl::sycl::handler& cgh)
+    if (source.get_range().size() <= work_group_size) // Single-pass reduction
     {
-        auto r = result.get_access<cl::sycl::access::mode::discard_write>(cgh);
-        auto s = source.get_access<cl::sycl::access::mode::read>(cgh);
+        reduction_step(source, result, work_group_size);
+    }
+    else if (source.get_range().size() <= (work_group_size * work_group_size)) // Two-pass reduction
+    {
+        cl::sycl::buffer<SourceType> temp{ source.get_range() / work_group_size };
 
-        cgh.parallel_for_workgroup<KernelName>(range, [=](cl::sycl::item<1> i)
+        reduction_step(source, temp, work_group_size);
+        reduction_step(temp, result, work_group_size);
+    }
+    else // Multi-pass reduction
+    {
+        cl::sycl::buffer<SourceType> temp{ source.get_range() / work_group_size +
+                                           source.get_range() / (work_group_size * work_group_size) };
+        cl::sycl::buffer<SourceType> temp_sub1{ temp, 0, source.get_range() / work_group_size };
+        cl::sycl::buffer<SourceType> temp_sub2{ temp, (source.get_range() / work_group_size).get(0), source.get_range() / (work_group_size * work_group_size) };
+
+        reduction_step(source, temp_sub1, work_group_size);
+
+        for (std::size_t length = source.get_range() / work_group_size; length > work_group_size; length /= work_group_size)
         {
-            reduction_step
-        });
-    });
-
-    std::size_t length = source.get_range();
-
-    for (; length > max_wgs; l /= max_wgs)
-    {
-        reduction_step(temp, temp, length)
+            reduction_step(temp_sub1,
+                           length <= work_group_size ? result : temp_sub2, // When ran for the last time, write to 'result' instead of 'temp'
+                           work_group_size,
+                           length);
+            std::swap(temp_sub1, temp_sub2);
+        }
     }
 }
 
 int main()
 {
     // Sample params
-    const std::size_t plat_index = std::numeric_limits<std::size_t>::max();
-    const std::size_t dev_index = std::numeric_limits<std::size_t>::max();
-    const auto dev_type = cl::sycl::info::device_type::gpu;
     const std::size_t length = 4096u;
 
     try
     {
-        // Platform selection
-        auto plats = cl::sycl::platform::get_platforms();
-        
-        if (plats.empty()) throw std::runtime_error{ "No OpenCL platform found." };
-        
-        std::cout << "Found platforms:" << std::endl;
-        for (const auto plat : plats) std::cout << "\t" << plat.get_info<cl::sycl::info::platform::vendor>() << std::endl;
-        
-        auto plat = plats.at(plat_index == std::numeric_limits<std::size_t>::max() ? 0 : plat_index);
-        
-        std::cout << "\n" << "Selected platform: " << plat.get_info<cl::sycl::info::platform::vendor>() << std::endl;
-        
-        // Device selection
-        auto devs = plat.get_devices(dev_type);
-        
-        if (devs.empty()) throw std::runtime_error{ "No OpenCL device of specified type found on selected platform." };
-        
-        auto dev = devs.at(dev_index == std::numeric_limits<std::size_t>::max() ? 0 : dev_index);
-        
-        std::cout << "Selected device: " << dev.get_info<cl::sycl::info::device::name>() << "\n" << std::endl;
+        std::cout << "SYCL runtime using cl::sycl::default_selector..." << std::endl;
 
-        // Context, queue, buffer creation
-        //
-        // NOTE: while explicit context creation may be omitted at the developers discretion, it is
-        //       deemed both instructive and useful to manually handle the context. Rationale follows
-        //       excerpt from sycl-1.2.1.pdf: p.32, section 3.6.9)
-        //
-        // There is no global state speciﬁed to be required in SYCL implementations. This means, for example,
-        // that if the user creates two queues without explicitly constructing a common context, then a SYCL
-        // implementation does not have to create a shared context for the two queues. Implementations are free
-        // to share or cache state globally for performance, but it is not required.
-        //
-        //       After getting used to writing single-device/single-queue code, when one ventures into the realm
-        //       of multi-device or single-device but multi-queue (concurrent computation and data movement)
-        //       code, the optional nature of this facility may cause arcane errors.
+        cl::sycl::device dev{ cl::sycl::default_selector{} };
+
+        std::cout << "Selected " <<
+            dev.get_info<cl::sycl::info::device::name>() <<
+            " on platform " <<
+            dev.get_info<cl::sycl::info::device::platform>().get_info<cl::sycl::info::platform::name>() <<
+            std::endl;
 
         auto async_error_handler = [](cl::sycl::exception_list errors)
         {
             for (auto error : errors)
             {
                 try { std::rethrow_exception(error); }
+                catch (cl::sycl::runtime_error e)
+                {
+                    std::cerr << e.what() << std::endl;
+                    std::cerr << "Triggered in " << e.get_file_name() << ":" << e.get_line_number() << std::endl;
+                    std::exit(e.get_cl_code());
+                }
                 catch (cl::sycl::exception e)
                 {
                     std::cerr << e.what() << std::endl;
                     std::exit(e.get_cl_code());
                 }
             }
-        };
+        }; 
         
         cl::sycl::context ctx{ dev, async_error_handler };
 
         cl::sycl::queue queue{ dev };
 
-        cl::sycl::buffer<float> buf{ cl::sycl::range<1>{ length } };
-        auto v = util::make_placeholder_accessor<cl::sycl::access::mode::read_write, cl::sycl::access::target::global_buffer>(buf);
+        cl::sycl::buffer<std::uint32_t> iota_buf{ cl::sycl::range<1>{ length }, cl::sycl::property::buffer::context_bound{ ctx } };
+        cl::sycl::buffer<std::uint32_t> max_buf{ cl::sycl::range<1>{ 1 }, cl::sycl::property::buffer::context_bound { ctx } };
 
         // Initialize buffer
-        // 
-        // NOTE: host accessor lifetime provides the SYCL runtime with the necessary information
-        //       about the scope of possible host access. (Map-unmap in OpenCL terms.)
         {
-            auto access = buf.get_access<cl::sycl::access::mode::write>();
+            auto access = iota_buf.get_access<cl::sycl::access::mode::write>();
 
-            std::fill_n(access.get_pointer(), access.get_count(), 1.f);
+            std::iota(access.get_pointer(), access.get_pointer() + access.get_count(), 1);
         }
 
-        // Nested lambda to be captured by kernel
-        const auto f = [=](const auto x)
-        {
-            return [=](const auto y)
-            {
-                return [=](const cl::sycl::item<1> i)
-                {
-                    v[i] += x + y;
-                };
-            };
-        };
-
-        queue.submit([&](cl::sycl::handler& cgh)
-        {
-            cgh.parallel_for<class valami>(v.get_range(), [](cl::sycl::item<1> i)
-            {
-            });
-        });
+        reduce<SYCL_Reduce>(queue,
+                            std::numeric_limits<std::uint32_t>::max(),
+                            cl::sycl::min<std::uint32_t>,
+                            iota_buf,
+                            max_buf,
+                            dev.get_info<cl::sycl::info::device::max_work_group_size>());
 
         // Verify
         //
@@ -179,11 +171,9 @@ int main()
         //             sync points, and rationale for this change, see:
         //             sycl-1.2.1.pdf: p.30, section 3.6.5.1()
         {
-            auto access = buf.get_access<cl::sycl::access::mode::read>();
+            auto access = max_buf.get_access<cl::sycl::access::mode::read>();
 
-            if (std::any_of(access.get_pointer(),
-                            access.get_pointer() + access.get_count(),
-                            [res = 1.f + 1.f + 2.f](const float& val) { return val != res; }))
+            if (access[0] != length)
                 throw std::runtime_error{ "Wrong result computed in kernel." };
         }
 
