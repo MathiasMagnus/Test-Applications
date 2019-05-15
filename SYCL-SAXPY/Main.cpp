@@ -98,11 +98,11 @@ int main(int argc, char* argv[])
 
         std::valarray<float> arr_x(opts.length),
                              arr_y(opts.length);
-        cl_float a = 2.0;
+        float a = 2.f;
 
         // Fill arrays with random values between 0 and 100
         auto prng = [engine = std::default_random_engine{},
-                     dist = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 }]() mutable { return dist(engine); };
+                     dist = std::uniform_real_distribution<float>{ -100.0, 100.0 }]() mutable { return dist(engine); };
 
         std::generate_n(std::begin(arr_x), opts.length, prng);
         std::generate_n(std::begin(arr_y), opts.length, prng);
