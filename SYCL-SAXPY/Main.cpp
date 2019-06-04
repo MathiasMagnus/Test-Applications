@@ -33,7 +33,6 @@ int main(int argc, char* argv[])
     try
     {
         const std::string banner = "SYCL-SAXPY sample";
-
         const cli::options opts = cli::parse(argc, argv, banner);
 
         if (!opts.quiet) std::cout << banner << std::endl << std::endl;
@@ -110,7 +109,7 @@ int main(int argc, char* argv[])
         // Initialize buffer
         {
             auto x = buf_x.get_access<cl::sycl::access::mode::write>();
-            auto y = buf_x.get_access<cl::sycl::access::mode::write>();
+            auto y = buf_y.get_access<cl::sycl::access::mode::write>();
 
             std::copy(std::begin(arr_x), std::end(arr_x), x.get_pointer());
             std::copy(std::begin(arr_y), std::end(arr_y), y.get_pointer());
@@ -131,7 +130,7 @@ int main(int argc, char* argv[])
         // Overlapping compute of validation set on host
         auto start = std::chrono::high_resolution_clock::now();
 
-        std::valarray<float> ref = a * arr_x + arr_y;
+        arr_y = a * arr_x + arr_y;
 
         auto finish = std::chrono::high_resolution_clock::now();
 
