@@ -1,26 +1,10 @@
 #pragma once
 
-// Configration header (kernel location)
-#include <CL-Include-config.hpp>
-
 // OpenCL includes
-#define CL_HPP_ENABLE_EXCEPTIONS
-#define CL_HPP_MINIMUM_OPENCL_VERSION 110
-#define CL_HPP_TARGET_OPENCL_VERSION 110
 #include <CL/cl2.hpp>
 
-// TCLAP includes
-#include <tclap/CmdLine.h>
-
 // C++ Standard includes
-#include <vector>
-#include <valarray>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <ios>
 #include <chrono>
-#include <random>
 
 namespace cl
 {

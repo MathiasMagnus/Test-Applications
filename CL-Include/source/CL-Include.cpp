@@ -1,7 +1,18 @@
-// CL-CPP includes
+// CL-Include includes
+#include <CL-Include-config.hpp>	// kernels_path
 #include <CL-Include.hpp>
 #include <Options.hpp>
 
+// C++ Standard includes
+#include <vector>
+#include <valarray>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <ios>
+#include <chrono>
+#include <random>
+#include <sstream>
 
 int main(int argc, char* argv[])
 {
@@ -49,9 +60,12 @@ int main(int argc, char* argv[])
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
 			                                       std::istreambuf_iterator<char>{} } };
 
-		program.build({ device }, "-cl-std=CL1.1");
+		std::stringstream build_opts;
+		build_opts << "-cl-std=CL1.1 "
+		           << "-I " << kernels_path;
+		program.build({ device }, build_opts.str().c_str());
 
-		auto vecAdd = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
+		auto saxpy = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
 
 		// Init computation
 		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
@@ -75,7 +89,7 @@ int main(int argc, char* argv[])
 		cl::copy(queue, std::cbegin(vec_x), std::cend(vec_x), buf_y);
 
 		// Launch kernels
-		cl::Event kernel_event{ vecAdd(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
+		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
 
 		kernel_event.wait();
 
@@ -109,9 +123,9 @@ int main(int argc, char* argv[])
 			markers.second != std::cend(ref)) throw std::runtime_error{ "Validation failed." };
 
 	}
-	catch (TCLAP::ArgException &e) // If cli parsing error occurs
+	catch (cli::error &e) // If cli parsing error occurs
 	{
-		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+		std::cerr << e.what() << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
 	catch (cl::BuildError error) // If kernel failed to build
