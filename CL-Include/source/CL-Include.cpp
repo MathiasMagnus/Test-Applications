@@ -76,18 +76,21 @@ int main(int argc, char* argv[])
 		cl_float a = 2.0;
 
 		// Fill arrays with random values between 0 and 100
-		auto prng = [engine = std::default_random_engine{},
-			         distribution = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 }]() mutable { return distribution(engine); };
+		{
+			auto engine = std::default_random_engine{};
+			auto dist = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 };
+		    auto prng = [&]() { return dist(engine); };
 
-		std::generate_n(std::begin(vec_x), chainlength, prng);
-		std::generate_n(std::begin(vec_y), chainlength, prng);
+			std::generate_n(std::begin(vec_x), chainlength, prng);
+			std::generate_n(std::begin(vec_y), chainlength, prng);
+		}
 
 		cl::Buffer buf_x{ context, std::begin(vec_x), std::end(vec_x), true },
-			       buf_y{ context, std::begin(vec_x), std::end(vec_x), false };
+			       buf_y{ context, std::begin(vec_y), std::end(vec_y), false };
 
 		// Explicit (blocking) dispatch of data before launch
 		cl::copy(queue, std::cbegin(vec_x), std::cend(vec_x), buf_x);
-		cl::copy(queue, std::cbegin(vec_x), std::cend(vec_x), buf_y);
+		cl::copy(queue, std::cbegin(vec_y), std::cend(vec_y), buf_y);
 
 		// Launch kernels
 		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
