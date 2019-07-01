@@ -1,3 +1,5 @@
+// CL-Include includes
+#include <CL-Include-config.hpp>	// kernels_path
 #include <Options.hpp>
 
 // TCLAP includes
