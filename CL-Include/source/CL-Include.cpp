@@ -71,7 +71,8 @@ int main(int argc, char* argv[])
 		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
 																		//     promises no data is lost, silences compiler warning
 		std::valarray<cl_float> vec_x(chainlength),
-			                    vec_y(chainlength);
+			                    vec_y(chainlength),
+								ref(chainlength);
 		cl_float a = 2.0;
 
 		// Fill arrays with random values between 0 and 100
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
 		// Compute validation set on host
 		auto start = std::chrono::high_resolution_clock::now();
 
-		std::valarray<cl_float> ref = a * vec_x + vec_y;
+		ref = a * vec_x + vec_y;
 
 		auto finish = std::chrono::high_resolution_clock::now();
 
