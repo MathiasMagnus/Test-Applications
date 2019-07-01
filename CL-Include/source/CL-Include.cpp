@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 {
 	try // Any error results in program termination
 	{
-		const std::string banner = "SYCL-SAXPY sample";
+		const std::string banner = "CL-Include sample";
         const cli::options opts = cli::parse(argc, argv, banner);
 
         if (!opts.quiet) std::cout << banner << std::endl << std::endl;
