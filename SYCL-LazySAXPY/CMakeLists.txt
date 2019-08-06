@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2.2)
 
-project(SYCL-LazyAccessor LANGUAGES CXX)
+project(SYCL-LazySAXPY LANGUAGES CXX)
 
 # Include modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)

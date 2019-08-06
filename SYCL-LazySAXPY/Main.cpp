@@ -120,7 +120,9 @@ int main(int argc, char* argv[])
 
         auto dev_supports_profiling = dev.get_info<cl::sycl::info::device::queue_profiling>();
 
-        cl::sycl::queue queue{ dev };
+        cl::sycl::queue queue{ dev, dev_supports_profiling ?
+                                    cl::sycl::property::queue::enable_profiling{} :
+                                    cl::sycl::property_list{} };
 
         cl::sycl::buffer<float> buf_x{ cl::sycl::range<1>{opts.length} },
                                 buf_y{ cl::sycl::range<1>{opts.length} };
