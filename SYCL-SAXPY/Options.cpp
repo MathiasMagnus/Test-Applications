@@ -15,7 +15,7 @@ cli::options cli::parse(int argc, char** argv, const std::string banner)
 
         TCLAP::ValueArg<std::size_t> length_arg("l", "length", "Length of input", false, 262144, "positive integral", cli);
         TCLAP::ValueArg<std::size_t> platform_arg("p", "platform", "Index of platform to use", false, 0, "positive integral", cli );
-        TCLAP::ValueArg<std::size_t> device_arg("d", "device", "Number of input points", false, 0, "positive integral", cli);
+        TCLAP::ValueArg<std::size_t> device_arg("d", "device", "Index of device to use", false, 0, "positive integral", cli);
 
         std::vector<std::string> valid_dev_strings{ "all", "cpu", "gpu", "acc", "host" };
         TCLAP::ValuesConstraint<std::string> valid_dev_constraint{ valid_dev_strings };
