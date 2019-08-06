@@ -139,12 +139,12 @@ int main(int argc, char* argv[])
             std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count() <<
             " us." << std::endl;
 
-        if (!opts.quiet && dev_supports_profiling) std::cout <<
+        /*if (!opts.quiet && dev_supports_profiling) std::cout <<
             "Device (kernel) execution took: " <<
             util::get_duration<cl::sycl::info::event_profiling::command_start,
                                cl::sycl::info::event_profiling::command_end,
                                std::chrono::microseconds>(event).count() <<
-            " us." << std::endl;
+            " us." << std::endl;*/
 
         // Verify
         //

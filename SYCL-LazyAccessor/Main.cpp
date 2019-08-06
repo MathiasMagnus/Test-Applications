@@ -13,7 +13,7 @@
 
 struct saxcessor // apologies for bad pun
 {
-    saxcessor(cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer, cl::sycl::access::placeholder::true_t> a,
+    saxcessor(cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer> a,
               cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::global_buffer> x)
         : _a{a}
         , _x{x}
@@ -21,13 +21,13 @@ struct saxcessor // apologies for bad pun
 
     float operator[](cl::sycl::item<1> i) const { return _a[0] * _x[i]; }
 
-    cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer, cl::sycl::access::placeholder::true_t> _a;
+    cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer> _a;
     cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::global_buffer> _x;
 };
 
 struct sax//py
 {
-    sax(float a, cl::sycl::buffer<float> x) : a_{cl::sycl::range<1>{1}}, x_{x}, p_{a_}
+    sax(float a, cl::sycl::buffer<float> x) : a_{cl::sycl::range<1>{1}}, x_{x}
     {
         a_.get_access<cl::sycl::access::mode::discard_write>()[0] = a;
     }
@@ -35,13 +35,12 @@ struct sax//py
     template <cl::sycl::access::mode Mode, cl::sycl::access::target Target = cl::sycl::access::target::global_buffer>
     saxcessor get_access(cl::sycl::handler& cgh)
     {
-        cgh.require(p_);
-        return saxcessor{ p_, x_.get_access<cl::sycl::access::mode::read>(cgh) };
+        return saxcessor{ a_.get_access<cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer>(cgh),
+                          x_.get_access<cl::sycl::access::mode::read>(cgh) };
     }
 
     cl::sycl::buffer<float> a_;
     cl::sycl::buffer<float> x_;
-    cl::sycl::accessor<float, 1, cl::sycl::access::mode::read, cl::sycl::access::target::constant_buffer, cl::sycl::access::placeholder::true_t> p_;
 };
 
 namespace util
