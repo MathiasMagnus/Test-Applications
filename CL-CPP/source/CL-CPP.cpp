@@ -93,13 +93,6 @@ int main(int argc, char* argv[])
 
 		kernel_event.wait();
 
-		std::cout <<
-			"Device (kernel) execution took: " <<
-			cl::util::get_duration<CL_PROFILING_COMMAND_START,
-			                       CL_PROFILING_COMMAND_END,
-			                       std::chrono::microseconds>(kernel_event).count() <<
-			" us." << std::endl;
-
 		// Compute validation set on host
 		auto start = std::chrono::high_resolution_clock::now();
 
@@ -110,6 +103,13 @@ int main(int argc, char* argv[])
 		std::cout <<
 			"Host (validation) execution took: " <<
 			std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count() <<
+			" us." << std::endl;
+
+		std::cout <<
+			"Device (kernel) execution took: " <<
+			cl::util::get_duration<CL_PROFILING_COMMAND_START,
+			                       CL_PROFILING_COMMAND_END,
+			                       std::chrono::microseconds>(kernel_event).count() <<
 			" us." << std::endl;
 
 		// (Blocking) fetch of results
