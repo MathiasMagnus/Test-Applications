@@ -1,51 +1,79 @@
-# The minimum version of CMake necessary to build this project
-cmake_minimum_required (VERSION 3.7)
+cmake_minimum_required(
+   VERSION
+      3.7
+)
 
-# The name of our project
-project (CL-CPP LANGUAGES CXX)
+project(CL-CPP
+   LANGUAGES
+      CXX
+)
 
-# Find dependent libraries
-find_package (OpenCL REQUIRED)
-find_package (Threads REQUIRED)
+set(CMAKE_MODULE_PATH
+   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules
+)
 
-# Adding source code files according to configuration
-set (Files_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/include/CL-CPP.hpp)
-set (Files_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/source/CL-CPP.cpp)
-set (Files_KRNS ${CMAKE_CURRENT_SOURCE_DIR}/kernel/saxpy.cl)
+find_package(TCLAP REQUIRED)
+find_package(OpenCL REQUIRED)
+find_package(Threads REQUIRED)
 
-# Generate the configuration file for application to locate kernel files
-configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/include/CL-CPP-config.in.hpp"
-                "${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp")
+set(Files_HDRS include/CL-CPP.hpp)
+set(Files_SRCS source/CL-CPP.cpp)
+set(Files_KRNS kernel/saxpy.cl)
 
-list (APPEND ${Files_HDRS} "${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp")
+configure_file(
+   ${CMAKE_CURRENT_SOURCE_DIR}/include/CL-CPP-config.in.hpp
+   ${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp)
 
-# Specify executable sources
-add_executable (${PROJECT_NAME} ${Files_HDRS}
-                                ${Files_SRCS}
-                                ${Files_KRNS})
+list(APPEND
+   ${Files_HDRS}
+   ${CMAKE_CURRENT_BINARY_DIR}/include/CL-CPP-config.hpp
+)
 
-# Append our project's include directory to the "#include <>" paths
-target_include_directories (${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include/
-                                                    ${CMAKE_CURRENT_BINARY_DIR}/include/)
+add_executable(${PROJECT_NAME}
+   ${Files_HDRS}
+   ${Files_SRCS}
+   ${Files_KRNS}
+)
 
-# Link dependant libraries
-target_link_libraries (${PROJECT_NAME} PRIVATE OpenCL::OpenCL
-                                               Threads::Threads)
+set_target_properties(${PROJECT_NAME}
+   PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXTENSIONS OFF
+)
 
-# Specify strictly conforming required language standard
-set_target_properties (${PROJECT_NAME} PROPERTIES CXX_STANDARD 14
-                                                  CXX_STANDARD_REQUIRED ON
-												  CXX_EXTENSIONS OFF)
+target_include_directories(${PROJECT_NAME}
+   PRIVATE
+      ${PROJECT_SOURCE_DIR}/include/
+      ${CMAKE_CURRENT_BINARY_DIR}/include/
+)
 
-# The implementation of device to host cl::copy does not comply with MSVC checked iterators
-target_compile_definitions (${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_SCL_SECURE_NO_WARNINGS>)
+target_link_libraries(${PROJECT_NAME}
+   PRIVATE
+      OpenCL::OpenCL
+      Threads::Threads
+)
 
-# cl2.hpp contains attributes on basic types (cl_int, cl_double, etc.) that GCC does not like
-target_compile_options (${PROJECT_NAME} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive- /EHsc>
-                                                $<$<CXX_COMPILER_ID:GNU>:-Wno-ignored-attributes>)
+target_compile_definitions(${PROJECT_NAME}
+   PRIVATE
+      CL_TARGET_OPENCL_VERSION=120
+)
 
-# Create filters for IDEs
-set_target_properties (${PROJECT_NAME} PROPERTIES FOLDER "OpenCL")
-source_group ("Headers" FILES ${Files_HDRS})
-source_group ("Sources" FILES ${Files_SRCS})
-source_group ("Kernels" FILES ${Files_KRNS})
+target_compile_options(${PROJECT_NAME}
+  PRIVATE
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
+      -Wall     # Turn on all warnings
+      -Wextra   # Turn on even more warnings
+      -pedantic # Turn on strict language conformance
+      -Wno-ignored-attributes # Console blows up due to cl.h
+    >
+    $<$<CXX_COMPILER_ID:MSVC>:
+      /W4          # Turn on all (sensible) warnings
+      /permissive- # Turn on strict language conformance
+      /EHsc        # Specify exception handling model
+    >
+)
+
+source_group("Headers" FILES ${Files_HDRS})
+source_group("Sources" FILES ${Files_SRCS})
+source_group("Kernels" FILES ${Files_KRNS})
