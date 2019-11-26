@@ -127,7 +127,9 @@ int main(int argc, char* argv[])
             });
         });
 
-        // Overlapping compute of validation set on host
+        event.wait_and_throw(); // May use CPU as device
+
+        // Compute validation set on host
         auto start = std::chrono::high_resolution_clock::now();
 
         arr_y = a * arr_x + arr_y;
