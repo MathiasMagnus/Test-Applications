@@ -101,7 +101,7 @@ namespace cuda
     {
     public:
 
-        array(std::size_t count) : m_dev_ptr{ nullptr }
+        array(std::size_t count) : m_dev_ptr{ new T* }
         {
             static_assert(std::is_trivially_constructible<T>::value, "cuda::array can only hold types satisfying TriviallyConstructible");
 
