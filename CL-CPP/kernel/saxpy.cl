@@ -1,4 +1,4 @@
-__kernel void vecAdd(float a,
+__kernel void saxpy(float a,
                      __global float* x,
                      __global float* y)
 {

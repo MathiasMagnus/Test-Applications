@@ -1,6 +1,6 @@
 // CL-CPP includes
 #include <CL-CPP.hpp>
-
+#include <execution>
 
 int main(int argc, char* argv[])
 {
@@ -22,9 +22,9 @@ int main(int argc, char* argv[])
 
 		if (platforms.empty()) throw std::runtime_error{ "No OpenCL platforms found." };
 
-		std::cout << "Found platform" << (platforms.size() > 1 ? "s:\n" : ":");
+		std::cout << "Found platform" << (platforms.size() > 1 ? "s" : "") << ":\n";
 		for (const auto& platform : platforms)
-			std::cout << (platforms.size() > 1 ? "\t" : " ") << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+			std::cout << "\t" << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
 		cl::Platform plat = platforms.at(plat_id.getValue());
 		std::cout << "Selected platform: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
@@ -41,9 +41,9 @@ int main(int argc, char* argv[])
 		std::vector<cl::Device> devices;
 		plat.getDevices(dev_type, &devices);
 
-		std::cout << "Found device" << (devices.size() > 1 ? "s:\n" : ":");
+		std::cout << "Found device" << (devices.size() > 1 ? "s" : "") << ":\n";
 		for (const auto& device : devices)
-			std::cout << (devices.size() > 1 ? "\t" : " ") << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+			std::cout << "\t" << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
 		cl::Device device = devices.at(0);
 		std::cout << "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
@@ -63,9 +63,9 @@ int main(int argc, char* argv[])
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
 			                                       std::istreambuf_iterator<char>{} } };
 
-		program.build({ device }, "-cl-opt-disable");
+		program.build({ device });
 
-		auto vecAdd = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "vecAdd");
+		auto saxpy = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
 
 		// Init computation
 		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
@@ -81,22 +81,23 @@ int main(int argc, char* argv[])
 		std::generate_n(std::begin(vec_x), chainlength, prng);
 		std::generate_n(std::begin(vec_y), chainlength, prng);
 
-		cl::Buffer buf_x{ context, std::begin(vec_x), std::end(vec_x), true },
-			       buf_y{ context, std::begin(vec_y), std::end(vec_y), false };
-
-		// Explicit (blocking) dispatch of data before launch
-		cl::copy(queue, std::begin(vec_x), std::end(vec_x), buf_x);
-		cl::copy(queue, std::begin(vec_y), std::end(vec_y), buf_y);
+		cl::Buffer buf_x{ queue, std::begin(vec_x), std::end(vec_x), true },
+			       buf_y{ queue, std::begin(vec_y), std::end(vec_y), false };
 
 		// Launch kernels
-		cl::Event kernel_event{ vecAdd(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
-
+		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
 		kernel_event.wait();
 
 		// Compute validation set on host
 		auto start = std::chrono::high_resolution_clock::now();
 
-		std::valarray<cl_float> ref = a * vec_x + vec_y;
+		std::transform(std::execution::par_unseq,
+                       std::begin(vec_x), std::end(vec_x),
+                       std::begin(vec_y), std::begin(vec_y),
+		               [=](const cl_float& x, const cl_float& y)
+		{
+            return a * x + y;
+		});
 
 		auto finish = std::chrono::high_resolution_clock::now();
 
@@ -112,15 +113,15 @@ int main(int argc, char* argv[])
 			                       std::chrono::microseconds>(kernel_event).count() <<
 			" us." << std::endl;
 
-		// (Blocking) fetch of results
-		cl::copy(queue, buf_y, std::begin(vec_y), std::end(vec_y));
+		// (Blocking) fetch of results (reuse storage of vec_x)
+		cl::copy(queue, buf_y, std::begin(vec_x), std::end(vec_x));
 
 		// Validate (compute saxpy on host and match results)
-		auto markers = std::mismatch(std::begin(vec_y), std::end(vec_y),
-			                         std::begin(ref), std::end(ref));
+		auto markers = std::mismatch(std::begin(vec_x), std::end(vec_x),
+			                         std::begin(vec_y), std::end(vec_y));
 
-		if (markers.first != std::end(vec_y) ||
-			markers.second != std::end(ref)) throw std::runtime_error{ "Validation failed." };
+		if (markers.first != std::end(vec_x) ||
+			markers.second != std::end(vec_y)) throw std::runtime_error{ "Validation failed." };
 
 	}
 	catch (TCLAP::ArgException &e) // If cli parsing error occurs
