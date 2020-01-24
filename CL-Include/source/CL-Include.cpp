@@ -1,6 +1,7 @@
 // CL-Include includes
-#include <CL-Include-config.hpp>	// kernels_path
+#include <CL-Include-config.hpp>
 #include <CL-Include.hpp>
+
 #include <Options.hpp>
 
 // C++ Standard includes
@@ -89,8 +90,8 @@ int main(int argc, char* argv[])
 			       buf_y{ context, std::begin(vec_y), std::end(vec_y), false };
 
 		// Explicit (blocking) dispatch of data before launch
-		cl::copy(queue, std::cbegin(vec_x), std::cend(vec_x), buf_x);
-		cl::copy(queue, std::cbegin(vec_y), std::cend(vec_y), buf_y);
+		cl::copy(queue, std::begin(vec_x), std::end(vec_x), buf_x);
+		cl::copy(queue, std::begin(vec_y), std::end(vec_y), buf_y);
 
 		// Launch kernels
 		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
@@ -120,11 +121,11 @@ int main(int argc, char* argv[])
 		cl::copy(queue, buf_y, std::begin(vec_y), std::end(vec_y));
 
 		// Validate (compute saxpy on host and match results)
-		auto markers = std::mismatch(std::cbegin(vec_y), std::cend(vec_y),
-			                         std::cbegin(ref), std::cend(ref));
+		auto markers = std::mismatch(std::begin(vec_y), std::end(vec_y),
+			                         std::begin(ref), std::end(ref));
 
-		if (markers.first != std::cend(vec_y) ||
-			markers.second != std::cend(ref)) throw std::runtime_error{ "Validation failed." };
+		if (markers.first != std::end(vec_y) ||
+			markers.second != std::end(ref)) throw std::runtime_error{ "Validation failed." };
 
 	}
 	catch (cli::error &e) // If cli parsing error occurs

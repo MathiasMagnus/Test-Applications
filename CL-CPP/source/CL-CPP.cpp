@@ -1,5 +1,6 @@
 // CL-CPP includes
 #include <CL-CPP.hpp>
+
 #include <execution>
 
 int main(int argc, char* argv[])

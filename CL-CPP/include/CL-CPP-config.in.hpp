@@ -1,3 +1,5 @@
+#pragma once
+
 // ISO C++14
 #include <string>
 
