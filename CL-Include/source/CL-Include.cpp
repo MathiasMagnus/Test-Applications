@@ -17,150 +17,150 @@
 
 int main(int argc, char* argv[])
 {
-	try // Any error results in program termination
-	{
-		const std::string banner = "CL-Include sample";
+    try // Any error results in program termination
+    {
+        const std::string banner = "CL-Include sample";
         const cli::options opts = cli::parse(argc, argv, banner);
 
         if (!opts.quiet) std::cout << banner << std::endl << std::endl;
 
-		std::vector<cl::Platform> platforms;
-		cl::Platform::get(&platforms);
+        std::vector<cl::Platform> platforms;
+        cl::Platform::get(&platforms);
 
-		if (platforms.empty()) throw std::runtime_error{ "No OpenCL platforms found." };
+        if (platforms.empty()) throw std::runtime_error{ "No OpenCL platforms found." };
 
-		std::cout << "Found platform" << (platforms.size() > 1 ? "s:\n" : ":");
-		for (const auto& platform : platforms)
-			std::cout << (platforms.size() > 1 ? "\t" : " ") << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+        std::cout << "Found platform" << (platforms.size() > 1 ? "s:\n" : ":");
+        for (const auto& platform : platforms)
+            std::cout << (platforms.size() > 1 ? "\t" : " ") << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
-		cl::Platform plat = platforms.at(opts.plat_id);
-		std::cout << "Selected platform: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+        cl::Platform plat = platforms.at(opts.plat_id);
+        std::cout << "Selected platform: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
-		std::vector<cl::Device> devices;
-		plat.getDevices(opts.dev_type, &devices);
+        std::vector<cl::Device> devices;
+        plat.getDevices(opts.dev_type, &devices);
 
-		std::cout << "Found device" << (devices.size() > 1 ? "s:\n" : ":");
-		for (const auto& device : devices)
-			std::cout << (devices.size() > 1 ? "\t" : " ") << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+        std::cout << "Found device" << (devices.size() > 1 ? "s:\n" : ":");
+        for (const auto& device : devices)
+            std::cout << (devices.size() > 1 ? "\t" : " ") << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
-		cl::Device device = devices.at(opts.dev_id);
-		std::cout << "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+        cl::Device device = devices.at(opts.dev_id);
+        std::cout << "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
-		// Create context and queue
-		std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((plat)()), 0 };
-		cl::Context context{ devices, props.data() };
+        // Create context and queue
+        std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((plat)()), 0 };
+        cl::Context context{ devices, props.data() };
 
-		cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
+        cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
 
-		// Load program source
-		std::ifstream source_file{ kernels_path + "/kernel.cl" };
-		if (!source_file.is_open())
-			throw std::runtime_error{ std::string{ "Cannot open kernel source: " } + (kernels_path + "/kernel.cl") };
+        // Load program source
+        std::ifstream source_file{ kernels_path + "/kernel.cl" };
+        if (!source_file.is_open())
+            throw std::runtime_error{ std::string{ "Cannot open kernel source: " } + (kernels_path + "/kernel.cl") };
 
-		// Create program and kernel
-		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
-			                                       std::istreambuf_iterator<char>{} } };
+        // Create program and kernel
+        cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
+                                                   std::istreambuf_iterator<char>{} } };
 
-		std::stringstream build_opts;
-		build_opts << "-cl-std=CL1.1 "
-		           << "-I " << kernels_path;
-		program.build({ device }, build_opts.str().c_str());
+        std::stringstream build_opts;
+        build_opts << "-cl-std=CL1.1 "
+                   << "-I " << kernels_path;
+        program.build({ device }, build_opts.str().c_str());
 
-		auto saxpy = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
+        auto saxpy = cl::KernelFunctor<cl_float, cl::Buffer, cl::Buffer>(program, "saxpy");
 
-		// Init computation
-		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
-																		//     promises no data is lost, silences compiler warning
-		std::valarray<cl_float> vec_x(chainlength),
-			                    vec_y(chainlength),
-								ref(chainlength);
-		cl_float a = 2.0;
+        // Init computation
+        const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
+                                                                        //     promises no data is lost, silences compiler warning
+        std::valarray<cl_float> vec_x(chainlength),
+                                vec_y(chainlength),
+                                ref(chainlength);
+        cl_float a = 2.0;
 
-		// Fill arrays with random values between 0 and 100
-		{
-			auto engine = std::default_random_engine{};
-			auto dist = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 };
-		    auto prng = [&]() { return dist(engine); };
+        // Fill arrays with random values between 0 and 100
+        {
+            auto engine = std::default_random_engine{};
+            auto dist = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 };
+            auto prng = [&]() { return dist(engine); };
 
-			std::generate_n(std::begin(vec_x), chainlength, prng);
-			std::generate_n(std::begin(vec_y), chainlength, prng);
-		}
+            std::generate_n(std::begin(vec_x), chainlength, prng);
+            std::generate_n(std::begin(vec_y), chainlength, prng);
+        }
 
-		cl::Buffer buf_x{ context, std::begin(vec_x), std::end(vec_x), true },
-			       buf_y{ context, std::begin(vec_y), std::end(vec_y), false };
+        cl::Buffer buf_x{ context, std::begin(vec_x), std::end(vec_x), true },
+                   buf_y{ context, std::begin(vec_y), std::end(vec_y), false };
 
-		// Explicit (blocking) dispatch of data before launch
-		cl::copy(queue, std::begin(vec_x), std::end(vec_x), buf_x);
-		cl::copy(queue, std::begin(vec_y), std::end(vec_y), buf_y);
+        // Explicit (blocking) dispatch of data before launch
+        cl::copy(queue, std::begin(vec_x), std::end(vec_x), buf_x);
+        cl::copy(queue, std::begin(vec_y), std::end(vec_y), buf_y);
 
-		// Launch kernels
-		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
+        // Launch kernels
+        cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
 
-		kernel_event.wait();
+        kernel_event.wait();
 
-		std::cout <<
-			"Device (kernel) execution took: " <<
-			cl::util::get_duration<CL_PROFILING_COMMAND_START,
-			                       CL_PROFILING_COMMAND_END,
-			                       std::chrono::microseconds>(kernel_event).count() <<
-			" us." << std::endl;
+        std::cout <<
+            "Device (kernel) execution took: " <<
+            cl::util::get_duration<CL_PROFILING_COMMAND_START,
+                                   CL_PROFILING_COMMAND_END,
+                                   std::chrono::microseconds>(kernel_event).count() <<
+            " us." << std::endl;
 
-		// Compute validation set on host
-		auto start = std::chrono::high_resolution_clock::now();
+        // Compute validation set on host
+        auto start = std::chrono::high_resolution_clock::now();
 
-		ref = a * vec_x + vec_y;
+        ref = a * vec_x + vec_y;
 
-		auto finish = std::chrono::high_resolution_clock::now();
+        auto finish = std::chrono::high_resolution_clock::now();
 
-		std::cout <<
-			"Host (validation) execution took: " <<
-			std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count() <<
-			" us." << std::endl;
+        std::cout <<
+            "Host (validation) execution took: " <<
+            std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count() <<
+            " us." << std::endl;
 
-		// (Blocking) fetch of results
-		cl::copy(queue, buf_y, std::begin(vec_y), std::end(vec_y));
+        // (Blocking) fetch of results
+        cl::copy(queue, buf_y, std::begin(vec_y), std::end(vec_y));
 
-		// Validate (compute saxpy on host and match results)
-		auto markers = std::mismatch(std::begin(vec_y), std::end(vec_y),
-			                         std::begin(ref), std::end(ref));
+        // Validate (compute saxpy on host and match results)
+        auto markers = std::mismatch(std::begin(vec_y), std::end(vec_y),
+                                     std::begin(ref), std::end(ref));
 
-		if (markers.first != std::end(vec_y) ||
-			markers.second != std::end(ref)) throw std::runtime_error{ "Validation failed." };
+        if (markers.first != std::end(vec_y) ||
+            markers.second != std::end(ref)) throw std::runtime_error{ "Validation failed." };
 
-	}
-	catch (cli::error &e) // If cli parsing error occurs
-	{
-		std::cerr << e.what() << std::endl;
-		std::exit(EXIT_FAILURE);
-	}
-	catch (cl::BuildError error) // If kernel failed to build
-	{
-		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
+    }
+    catch (cli::error &e) // If cli parsing error occurs
+    {
+        std::cerr << e.what() << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    catch (cl::BuildError error) // If kernel failed to build
+    {
+        std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
 
-		for (const auto& log : error.getBuildLog())
-		{
-			std::cerr <<
-				"\tBuild log for device: " <<
-				log.first.getInfo<CL_DEVICE_NAME>() <<
-				std::endl << std::endl <<
-				log.second <<
-				std::endl << std::endl;
-		}
+        for (const auto& log : error.getBuildLog())
+        {
+            std::cerr <<
+                "\tBuild log for device: " <<
+                log.first.getInfo<CL_DEVICE_NAME>() <<
+                std::endl << std::endl <<
+                log.second <<
+                std::endl << std::endl;
+        }
 
-		std::exit(error.err());
-	}
-	catch (cl::Error error) // If any OpenCL error occurs
-	{
-		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
+        std::exit(error.err());
+    }
+    catch (cl::Error error) // If any OpenCL error occurs
+    {
+        std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
 
-		std::exit(error.err());
-	}
-	catch (std::exception error) // If STL/CRT error occurs
-	{
-		std::cerr << error.what() << std::endl;
+        std::exit(error.err());
+    }
+    catch (std::exception error) // If STL/CRT error occurs
+    {
+        std::cerr << error.what() << std::endl;
 
-		std::exit(EXIT_FAILURE);
-	}
+        std::exit(EXIT_FAILURE);
+    }
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
