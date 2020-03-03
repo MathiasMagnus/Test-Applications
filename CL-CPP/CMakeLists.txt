@@ -16,9 +16,21 @@ find_package(TCLAP REQUIRED)
 find_package(OpenCL REQUIRED)
 find_package(Threads REQUIRED)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES GNU
+   OR(CMAKE_CXX_COMPILER_ID MATCHES GNU AND
+      CMAKE_SYSTEM_NAME MATCHES Linux
+   )
+)
+   find_package(TBB CONFIG REQUIRED)
+endif()
+
 set(Files_HDRS include/CL-CPP.hpp)
 set(Files_SRCS source/CL-CPP.cpp)
 set(Files_KRNS kernel/saxpy.cl)
+
+get_filename_component(Folder_KRNS
+   ${Files_KRNS}
+   ABSOLUTE)
 
 configure_file(
    ${CMAKE_CURRENT_SOURCE_DIR}/include/CL-CPP-config.in.hpp
@@ -52,6 +64,9 @@ target_link_libraries(${PROJECT_NAME}
    PRIVATE
       OpenCL::OpenCL
       Threads::Threads
+      #$<$<OR:$<CXX_COMPILER_ID:GNU>,$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>>:
+         TBB::tbb
+      #>
 )
 
 target_compile_definitions(${PROJECT_NAME}

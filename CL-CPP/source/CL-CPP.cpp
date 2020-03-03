@@ -125,12 +125,12 @@ int main(int argc, char* argv[])
 			markers.second != std::end(vec_y)) throw std::runtime_error{ "Validation failed." };
 
 	}
-	catch (TCLAP::ArgException &e) // If cli parsing error occurs
+	catch (TCLAP::ArgException& e) // If cli parsing error occurs
 	{
 		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
 		std::exit(EXIT_FAILURE);
 	}
-	catch (cl::BuildError error) // If kernel failed to build
+	catch (cl::BuildError& error) // If kernel failed to build
 	{
 		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
 
@@ -146,13 +146,13 @@ int main(int argc, char* argv[])
 
 		std::exit(error.err());
 	}
-	catch (cl::Error error) // If any OpenCL error occurs
+	catch (cl::Error& error) // If any OpenCL error occurs
 	{
 		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
 
 		std::exit(error.err());
 	}
-	catch (std::exception error) // If STL/CRT error occurs
+	catch (std::exception& error) // If STL/CRT error occurs
 	{
 		std::cerr << error.what() << std::endl;
 
