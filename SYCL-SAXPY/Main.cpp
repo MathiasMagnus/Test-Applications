@@ -173,17 +173,17 @@ int main(int argc, char* argv[])
 
         if (!opts.quiet) std::cout << "Result verification passed!" << std::endl;
     }
-    catch (cli::error e)
+    catch (cli::error& e)
     {
         std::cerr << e.what() << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    catch (cl::sycl::exception e)
+    catch (cl::sycl::exception& e)
     {
         std::cerr << e.what() << std::endl;
         std::exit(e.get_cl_code());
     }
-    catch (std::exception e)
+    catch (std::exception& e)
     {
         std::cerr << e.what() << std::endl;
         std::exit(EXIT_FAILURE);
