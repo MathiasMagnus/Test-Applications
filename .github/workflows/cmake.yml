@@ -41,7 +41,7 @@ jobs:
       shell: bash
       run: cmake
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
-        -S $GITHUB_WORKSPACE/CPP-Filesystem
+        -S ${GITHUB_WORKSPACE}/CPP-Filesystem
         -B ${{runner.workspace}}/build
 
     - name: Build
