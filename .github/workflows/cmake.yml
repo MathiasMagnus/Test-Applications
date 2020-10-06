@@ -17,8 +17,8 @@ jobs:
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build;
-        # Install Ninja only if it's the selected generator and it's not available.
         if [[ "${{matrix.GEN}}" == "Ninja" && ! `which ninja` ]]; then sudo apt install -y ninja-build; fi
+      # Install Ninja only if it's the selected generator and it's not available.
     
     - name: Read Build Environment
       shell: bash
