@@ -17,6 +17,7 @@ jobs:
       matrix:
         VER: [8, 9]
         STD: [GNU, ISO]
+        GEN: [Unix Makefiles, Ninja]
 
     steps:
     - uses: actions/checkout@v2
@@ -37,7 +38,8 @@ jobs:
         nproc;
         env;
         ls -al $VCPKG_INSTALLATION_ROOT ;
-        which make
+        which make;
+        which ninja
       
     - name: Read folder2
       shell: bash
