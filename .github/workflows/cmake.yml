@@ -70,7 +70,6 @@ jobs:
       shell: cmd
       run: |
         cmake -E make_directory ${{runner.workspace}}/build
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
     - name: Configure CMake
       shell: bash
