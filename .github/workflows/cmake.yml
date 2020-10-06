@@ -73,6 +73,7 @@ jobs:
         cmake -E make_directory ${{runner.workspace}}/build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         cl.exe
+        ninja.exe --version
 
     #- name: Read Build Environment
     #  shell: cmd
