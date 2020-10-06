@@ -24,8 +24,12 @@ jobs:
     
     - name: Read Build Environment
       shell: bash
-      run: ls $GITHUB_WORKSPACE;
-        which cmake
+      run: realpath $GITHUB_WORKSPACE;
+        ls -al $GITHUB_WORKSPACE;
+        realpath ${{runner.workspace}}/build;
+        ls -al ${{runner.workspace}}/build;
+        which cmake;
+        cmake --version
       
     - name: Read folder2
       shell: bash
