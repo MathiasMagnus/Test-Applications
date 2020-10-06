@@ -70,7 +70,8 @@ jobs:
       shell: cmd
       run: cmake -E make_directory ${{runner.workspace}}/build
 
-    - name: Configure CMake
+    - name: Configure Visual Studio
+      if: ${{ contains(matrix.GEN, Visual Studio 16 2019) }}
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
