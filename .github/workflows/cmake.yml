@@ -71,5 +71,5 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build;
 
     - name: Read Build Environment
-      shell: powershell
-      run: Get-ChildItem Env:\                      
+      shell: bash
+      run: env
