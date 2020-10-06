@@ -70,8 +70,10 @@ jobs:
     - name: Create Build Environment
       shell: cmd
       run: |
+        where cmake.exe
         cmake -E make_directory ${{runner.workspace}}/build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        where cmake.exe
         cl.exe
         ninja.exe --version
 
