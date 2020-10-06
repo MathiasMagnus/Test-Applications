@@ -24,7 +24,7 @@ jobs:
     
     - name: Read Build Environment
       shell: bash
-      run: ls $GITHUB_WORKSPACE \
+      run: ls $GITHUB_WORKSPACE
         which cmake
       
     - name: Read folder2
