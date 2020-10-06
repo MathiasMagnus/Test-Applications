@@ -41,6 +41,7 @@ jobs:
       # access regardless of the host operating system
       shell: bash
       run: cmake
+        -D CMAKE_CXX_COMPILER=g++-9
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
         -B ${{runner.workspace}}/build
