@@ -29,7 +29,7 @@ jobs:
         realpath ${{runner.workspace}}/build;
         ls -al ${{runner.workspace}}/build;
         which cmake;
-        cmake --version
+        cmake --version;
         nproc
       
     - name: Read folder2
