@@ -74,4 +74,4 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        cmake -G "${{matrix.GEN}}" -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -D CMAKE_VERBOSE_MAKEFILE=ON -S $GITHUB_WORKSPACE/CPP-Filesystem -B ${{runner.workspace}}/build
+        cmake -G "${{matrix.GEN}}" -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -D CMAKE_VERBOSE_MAKEFILE=ON -S %GITHUB_WORKSPACE%/CPP-Filesystem -B ${{runner.workspace}}/build
