@@ -31,6 +31,7 @@ jobs:
         which cmake;
         cmake --version;
         nproc
+        env
       
     - name: Read folder2
       shell: bash
