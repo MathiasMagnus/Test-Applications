@@ -30,6 +30,7 @@ jobs:
         ls -al ${{runner.workspace}}/build;
         which cmake;
         cmake --version
+        nproc
       
     - name: Read folder2
       shell: bash
