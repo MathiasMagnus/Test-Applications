@@ -1,4 +1,4 @@
-#set(CMAKE_GENERATOR "Unix Makefiles")
-#set(CMAKE_MAKE_PROGRAM make)
+set(CMAKE_GENERATOR "Unix Makefiles")
+set(CMAKE_MAKE_PROGRAM make)
 set(CMAKE_CXX_COMPILER g++-8)
 set(CMAKE_CXX_EXTENSIONS ON)
