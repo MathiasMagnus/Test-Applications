@@ -45,7 +45,6 @@ jobs:
 #        -D CMAKE_CXX_COMPILER=g++-${{matrix.VER}}
 #        -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
 #        -D CMAKE_VERBOSE_MAKEFILE=ON
-#        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
 #        -S $GITHUB_WORKSPACE/CPP-Filesystem
 #        -B ${{runner.workspace}}/build
 #
@@ -70,13 +69,16 @@ jobs:
     - name: Create Build Environment
       shell: cmd
       run: |
-        where cmake.exe
         cmake -E make_directory ${{runner.workspace}}/build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        where cmake.exe
-        cl.exe
-        ninja.exe --version
 
-    #- name: Read Build Environment
-    #  shell: cmd
-    #  run: 
+    - name: Configure CMake
+      shell: bash
+      run: cmake
+        -G "${{matrix.GEN}}"
+        -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
+        -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
+        -D CMAKE_VERBOSE_MAKEFILE=ON
+        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+        -S $GITHUB_WORKSPACE/CPP-Filesystem
+        -B ${{runner.workspace}}/build
