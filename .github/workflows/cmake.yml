@@ -76,9 +76,7 @@ jobs:
       shell: bash
       run: cmake
         -G "${{matrix.GEN}}"
-        -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
         -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
         -D CMAKE_VERBOSE_MAKEFILE=ON
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
         -B ${{runner.workspace}}/build
