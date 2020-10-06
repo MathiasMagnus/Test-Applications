@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         VER: [8, 9]
-        STD: [GNU17, ISO17]
+        STD: [GNU, ISO]
 
     steps:
     - uses: actions/checkout@v2
