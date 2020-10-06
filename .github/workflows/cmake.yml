@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        GCC: [8, 9]
+        VER: [8, 9]
+        STD: [GNU17, ISO17]
 
     steps:
     - uses: actions/checkout@v2
@@ -46,7 +47,8 @@ jobs:
       # access regardless of the host operating system
       shell: bash
       run: cmake
-        -D CMAKE_CXX_COMPILER=g++-${{matrix.GCC}}
+        -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/.github/toolchains/GCC-${{matrix.VER}}-${{matrix.STD}}.cmake
+        -D CMAKE_VERBOSE_MAKEFILE=ON
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
         -B ${{runner.workspace}}/build
@@ -55,4 +57,8 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . --config $BUILD_TYPE
+      run: cmake
+        --build .
+        --config $BUILD_TYPE
+        --
+        -j
