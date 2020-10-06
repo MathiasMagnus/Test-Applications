@@ -13,6 +13,9 @@ jobs:
     # cross-platform coverage.
     # See: https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#configuring-a-build-matrix
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        GCC: [8, 9]
 
     steps:
     - uses: actions/checkout@v2
@@ -43,7 +46,7 @@ jobs:
       # access regardless of the host operating system
       shell: bash
       run: cmake
-        -D CMAKE_CXX_COMPILER=g++-9
+        -D CMAKE_CXX_COMPILER=g++-${{matrix.GCC}}
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
         -B ${{runner.workspace}}/build
