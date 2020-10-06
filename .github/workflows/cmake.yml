@@ -70,9 +70,7 @@ jobs:
     - name: Create Build Environment
       run: |
         cmake -E make_directory ${{runner.workspace}}/build
-        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC"
-        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary"
-        dir "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
 
     #- name: Read Build Environment
     #  shell: cmd
