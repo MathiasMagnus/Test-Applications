@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         VER: [8, 9]
-        STD: [GNU, ISO]
+        STD: [ISO, GNU]
         GEN: [Unix Makefiles, Ninja]
         VAR: [Debug, Release]
 
@@ -47,8 +47,11 @@ jobs:
       # access regardless of the host operating system
       shell: bash
       run: cmake
-        -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/.github/toolchains/GCC-${{matrix.VER}}-${{matrix.STD}}.cmake
+        #-D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/.github/toolchains/GCC-${{matrix.VER}}-${{matrix.STD}}.cmake
+        -G "${{matrix.GEN}}"
         -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
+        -D CMAKE_CXX_COMPILER=g++-${{matrix.VER}}
+        -D CMAKE_CXX_EXTENSIONS=`if [[ "${{matrix.STD}}" == "GNU" ]]; then echo ON; else echo OFF; fi`
         -D CMAKE_VERBOSE_MAKEFILE=ON
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
