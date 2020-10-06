@@ -3,59 +3,59 @@ name: Build
 on: [push]
 
 jobs:
-  linux:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        VER: [8, 9]
-        EXT: [ON, OFF]
-        GEN: [Unix Makefiles, Ninja]
-        VAR: [Debug, Release]
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Create Build Environment
-      run: cmake -E make_directory ${{runner.workspace}}/build;
-        if [[ "${{matrix.GEN}}" == "Ninja" && ! `which ninja` ]]; then sudo apt install -y ninja-build; fi
-      # Install Ninja only if it's the selected generator and it's not available.
-    
-    - name: Read Build Environment
-      shell: bash
-      run: realpath $GITHUB_WORKSPACE;
-        ls -al $GITHUB_WORKSPACE;
-        realpath ${{runner.workspace}}/build;
-        ls -al ${{runner.workspace}}/build;
-        which cmake;
-        cmake --version;
-        nproc;
-        env;
-        ls -al $VCPKG_INSTALLATION_ROOT ;
-        which make
-      
-    - name: Read folder2
-      shell: bash
-      run: ls $GITHUB_WORKSPACE/CPP-Filesystem
-
-    - name: Configure CMake
-      shell: bash
-      run: cmake
-        -G "${{matrix.GEN}}"
-        -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
-        -D CMAKE_CXX_COMPILER=g++-${{matrix.VER}}
-        -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
-        -D CMAKE_VERBOSE_MAKEFILE=ON
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
-        -S $GITHUB_WORKSPACE/CPP-Filesystem
-        -B ${{runner.workspace}}/build
-
-    - name: Build
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake
-        --build .
-        --
-        -j`nproc`
+#  linux:
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        VER: [8, 9]
+#        EXT: [ON, OFF]
+#        GEN: [Unix Makefiles, Ninja]
+#        VAR: [Debug, Release]
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Create Build Environment
+#      run: cmake -E make_directory ${{runner.workspace}}/build;
+#        if [[ "${{matrix.GEN}}" == "Ninja" && ! `which ninja` ]]; then sudo apt install -y ninja-build; fi
+#      # Install Ninja only if it's the selected generator and it's not available.
+#    
+#    - name: Read Build Environment
+#      shell: bash
+#      run: realpath $GITHUB_WORKSPACE;
+#        ls -al $GITHUB_WORKSPACE;
+#        realpath ${{runner.workspace}}/build;
+#        ls -al ${{runner.workspace}}/build;
+#        which cmake;
+#        cmake --version;
+#        nproc;
+#        env;
+#        ls -al $VCPKG_INSTALLATION_ROOT ;
+#        which make
+#      
+#    - name: Read folder2
+#      shell: bash
+#      run: ls $GITHUB_WORKSPACE/CPP-Filesystem
+#
+#    - name: Configure CMake
+#      shell: bash
+#      run: cmake
+#        -G "${{matrix.GEN}}"
+#        -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
+#        -D CMAKE_CXX_COMPILER=g++-${{matrix.VER}}
+#        -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
+#        -D CMAKE_VERBOSE_MAKEFILE=ON
+#        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+#        -S $GITHUB_WORKSPACE/CPP-Filesystem
+#        -B ${{runner.workspace}}/build
+#
+#    - name: Build
+#      working-directory: ${{runner.workspace}}/build
+#      shell: bash
+#      run: cmake
+#        --build .
+#        --
+#        -j`nproc`
 
   windows:
     runs-on: windows-latest
