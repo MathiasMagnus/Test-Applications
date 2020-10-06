@@ -1,18 +1,14 @@
-name: Build - Ubuntu
+name: Build
 
 on: [push]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-
 jobs:
-  build:
+  linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         VER: [8, 9]
-        STD: [ISO, GNU]
+        EXT: [ON, OFF]
         GEN: [Unix Makefiles, Ninja]
         VAR: [Debug, Release]
 
@@ -20,9 +16,8 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Create Build Environment
-      # Some projects don't allow in-source building, so create a separate build directory
-      # We'll use this as our working directory for all subsequent commands
-      run: cmake -E make_directory ${{runner.workspace}}/build ;
+      run: cmake -E make_directory ${{runner.workspace}}/build;
+        # Install Ninja only if it's the selected generator and it's not available.
         if [[ "${{matrix.GEN}}" == "Ninja" && ! `which ninja` ]]; then sudo apt install -y ninja-build; fi
     
     - name: Read Build Environment
@@ -43,15 +38,12 @@ jobs:
       run: ls $GITHUB_WORKSPACE/CPP-Filesystem
 
     - name: Configure CMake
-      # Use a bash shell so we can use the same syntax for environment variable
-      # access regardless of the host operating system
       shell: bash
       run: cmake
-        #-D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/.github/toolchains/GCC-${{matrix.VER}}-${{matrix.STD}}.cmake
         -G "${{matrix.GEN}}"
         -D CMAKE_BUILD_TYPE=${{matrix.VAR}}
         -D CMAKE_CXX_COMPILER=g++-${{matrix.VER}}
-        -D CMAKE_CXX_EXTENSIONS=`if [[ "${{matrix.STD}}" == "GNU" ]]; then echo ON; else echo OFF; fi`
+        -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}}
         -D CMAKE_VERBOSE_MAKEFILE=ON
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -S $GITHUB_WORKSPACE/CPP-Filesystem
@@ -60,9 +52,24 @@ jobs:
     - name: Build
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake
         --build .
-        --config $BUILD_TYPE
         --
         -j
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        EXT: [ON, OFF]
+        GEN: [Visual Studio 16 2019, Ninja Multi-Config]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build;
+
+    - name: Read Build Environment
+      shell: powershell
+      run: Get-ChildItem Env:\
