@@ -47,6 +47,7 @@ jobs:
       # access regardless of the host operating system
       shell: bash
       run: cmake
+        -G "Unix Makefiles"
         -D CMAKE_TOOLCHAIN_FILE=$GITHUB_WORKSPACE/.github/toolchains/GCC-${{matrix.VER}}-${{matrix.STD}}.cmake
         -D CMAKE_VERBOSE_MAKEFILE=ON
         -D CMAKE_BUILD_TYPE=$BUILD_TYPE
