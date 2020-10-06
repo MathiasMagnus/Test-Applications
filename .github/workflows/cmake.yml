@@ -36,7 +36,7 @@ jobs:
         cmake --version;
         nproc;
         env;
-        ls -al $VCPKG_INSTALLATION_ROOT
+        ls -al $VCPKG_INSTALLATION_ROOT ;
         which make
       
     - name: Read folder2
