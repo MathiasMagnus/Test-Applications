@@ -38,7 +38,8 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE $GITHUB_WORKSPACE/CPP-Filesystem
+      #run: cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE $GITHUB_WORKSPACE/CPP-Filesystem
+      run: cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE ../CPP-Filesystem
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
