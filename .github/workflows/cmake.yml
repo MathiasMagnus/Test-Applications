@@ -55,7 +55,7 @@ jobs:
       run: cmake
         --build .
         --
-        -j
+        -j`nproc`
 
   windows:
     runs-on: windows-latest
@@ -72,4 +72,4 @@ jobs:
 
     - name: Read Build Environment
       shell: powershell
-      run: Get-ChildItem Env:\
+      run: Get-ChildItem Env:\                      
