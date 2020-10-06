@@ -22,9 +22,10 @@ jobs:
       # We'll use this as our working directory for all subsequent commands
       run: cmake -E make_directory ${{runner.workspace}}/build
     
-    - name: Read folder
+    - name: Read Build Environment
       shell: bash
-      run: ls $GITHUB_WORKSPACE
+      run: ls $GITHUB_WORKSPACE \
+        which cmake
       
     - name: Read folder2
       shell: bash
@@ -39,8 +40,7 @@ jobs:
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       #run: cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE $GITHUB_WORKSPACE/CPP-Filesystem
-      run: cd ${{runner.workspace}}/build && \
-        cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE ../CPP-Filesystem
+      run: cd ${{runner.workspace}}/build && cmake -D CMAKE_BUILD_TYPE=$BUILD_TYPE ../CPP-Filesystem
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
