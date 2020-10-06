@@ -28,11 +28,11 @@ int main()
 
     // If ultimately we'll be interested in the name of the last written filesystem entry
     // we could persist std::filesystem::path, instead of the iterator itself.
-    auto latest_reduce = std::reduce(fs::recursive_directory_iterator{ dir },
-                                     fs::recursive_directory_iterator{},
-                                     dir,
-                                     [](const fs::path& path,
-                                        const fs::directory_entry& entry)
+    auto latest_reduce = std::accumulate(fs::recursive_directory_iterator{ dir },
+                                         fs::recursive_directory_iterator{},
+                                         dir,
+                                         [](const fs::path& path,
+                                            const fs::directory_entry& entry)
     {
         return entry.last_write_time() > fs::last_write_time(path) ? entry.path() : path;
     });
