@@ -26,7 +26,7 @@ jobs:
       # Some projects don't allow in-source building, so create a separate build directory
       # We'll use this as our working directory for all subsequent commands
       run: cmake -E make_directory ${{runner.workspace}}/build ;
-        if [[ "${{matrix.GEN}}" == "Ninja" ]]; then sudo apt install -y ninja-build; fi
+        if [[ "${{matrix.GEN}}" == "Ninja" && ! `which ninja` ]]; then sudo apt install -y ninja-build; fi
     
     - name: Read Build Environment
       shell: bash
@@ -39,8 +39,7 @@ jobs:
         nproc;
         env;
         ls -al $VCPKG_INSTALLATION_ROOT ;
-        which make;
-        which ninja
+        which make
       
     - name: Read folder2
       shell: bash
