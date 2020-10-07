@@ -60,8 +60,10 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
+        VER: [v140, v141, v142]
         EXT: [ON, OFF]
         GEN: [Visual Studio 16 2019, Ninja Multi-Config]
+        BIN: [x64, x86]
 
     steps:
     - uses: actions/checkout@v2
@@ -73,8 +75,13 @@ jobs:
     - name: Configure Visual Studio
       if: ${{ matrix.GEN }} == "Visual Studio 16 2019"
       shell: cmd
+      run: cmake -G "${{matrix.GEN}}" -A ${{matrix.BIN}} -T ${{matrix.VER}} -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -S %GITHUB_WORKSPACE%/CPP-Filesystem -B ${{runner.workspace}}/build
+
+    - name: Configure Ninja
+      if: ${{ matrix.GEN }} == "Ninja Multi-Config"
+      shell: cmd
       run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{matrix.BIN}}
         cmake -G "${{matrix.GEN}}" -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -S %GITHUB_WORKSPACE%/CPP-Filesystem -B ${{runner.workspace}}/build
 
     - name: Build
