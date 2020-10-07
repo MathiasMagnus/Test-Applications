@@ -73,12 +73,12 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Configure Visual Studio
-      if: "${{ matrix.GEN }}" == "Visual Studio 16 2019"
+      if: matrix.GEN == "Visual Studio 16 2019"
       shell: cmd
       run: cmake -G "${{matrix.GEN}}" -A ${{matrix.BIN}} -T ${{matrix.VER}} -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -S %GITHUB_WORKSPACE%/CPP-Filesystem -B ${{runner.workspace}}/build
 
     - name: Configure Ninja
-      if: "${{ matrix.GEN }}" == "Ninja Multi-Config"
+      if: matrix.GEN == "Ninja Multi-Config"
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{matrix.BIN}}
