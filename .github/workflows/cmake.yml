@@ -83,9 +83,9 @@ jobs:
       if: matrix.GEN == 'Ninja Multi-Config'
       shell: cmd
       run: |
-        if /I "${{matrix.VER}}"=="v140" set VER=v14.0
-        if /I "${{matrix.VER}}"=="v141" set VER=v14.1
-        if /I "${{matrix.VER}}"=="v142" set VER=v14.2
+        if /I "${{matrix.VER}}"=="v140" set VER=14.0
+        if /I "${{matrix.VER}}"=="v141" set VER=14.1
+        if /I "${{matrix.VER}}"=="v142" set VER=14.2
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{matrix.BIN}} /vcvars_ver=%VER%
         cmake -G "${{matrix.GEN}}" -D CMAKE_CXX_EXTENSIONS=${{matrix.EXT}} -S %GITHUB_WORKSPACE%/CPP-Filesystem -B ${{runner.workspace}}/build
 
@@ -100,9 +100,9 @@ jobs:
       if: matrix.GEN == 'Visual Studio 16 2019'
       shell: cmd
       run: |
-        if /I "${{matrix.VER}}"=="v140" set VER=v14.0
-        if /I "${{matrix.VER}}"=="v141" set VER=v14.1
-        if /I "${{matrix.VER}}"=="v142" set VER=v14.2
+        if /I "${{matrix.VER}}"=="v140" set VER=14.0
+        if /I "${{matrix.VER}}"=="v141" set VER=14.1
+        if /I "${{matrix.VER}}"=="v142" set VER=14.2
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{matrix.BIN}} /vcvars_ver=%VER%
         cmake --build ${{runner.workspace}}/build --config Release
         cmake --build ${{runner.workspace}}/build --config Debug
