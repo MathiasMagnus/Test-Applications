@@ -60,7 +60,8 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        VER: [v140, v141, v142]
+        #VER: [v140, v141, v142]
+        VER: [v141, v142]
         EXT: [ON, OFF]
         GEN: [Visual Studio 16 2019, Ninja Multi-Config]
         BIN: [x64, x86]
