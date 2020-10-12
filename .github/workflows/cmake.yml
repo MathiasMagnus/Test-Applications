@@ -97,7 +97,7 @@ jobs:
         cmake --build ${{runner.workspace}}/build --config Debug -- /verbosity:minimal /maxCpuCount /noLogo
 
     - name: Build (Ninja)
-      if: matrix.GEN == 'Visual Studio 16 2019'
+      if: matrix.GEN == 'Ninja Multi-Config'
       shell: cmd
       run: |
         if /I "${{matrix.VER}}"=="v140" set VER=14.0
