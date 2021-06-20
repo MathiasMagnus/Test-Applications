@@ -7,6 +7,15 @@
 #include <algorithm>
 #include <execution>
 
+void checkError(hipError_t err, const char* name)
+{
+	if (err != hipSuccess)
+	{
+		std::cerr << name << "(" << hipGetErrorString(err) << ")" << std::endl;
+		std::exit(err);
+	}
+}
+
 __global__
 void saxpy(float a, float* x, float* y)
 {
@@ -21,7 +30,9 @@ int main()
     constexpr std::size_t N = num_threads * num_blocks;
 
     hipDeviceProp_t prop;
-    hipGetDeviceProperties(&prop, 0);
+    hipError_t err;
+    err = hipGetDeviceProperties(&prop, 0);
+    checkError(err, "hipGetDeviceProperties");
     std::cout << "Device name: " << prop.name << std::endl;
 
     const float a = 2.f;
@@ -39,27 +50,27 @@ int main()
     float* x_dev;
     float* y_dev;
 
-    hipMalloc((void**)&x_dev, sizeof(float) * N);
-    hipMalloc((void**)&y_dev, sizeof(float) * N);
+    err = hipMalloc((void**)&x_dev, sizeof(float) * N); checkError(err, "hipMalloc");
+    err = hipMalloc((void**)&y_dev, sizeof(float) * N); checkError(err, "hipMalloc");
 
-    hipMemcpy(x_dev, x.data(), x.size() * sizeof(float), hipMemcpyHostToDevice);
-    hipMemcpy(y_dev, y.data(), y.size() * sizeof(float), hipMemcpyHostToDevice);
+    err = hipMemcpy(x_dev, x.data(), x.size() * sizeof(float), hipMemcpyHostToDevice); checkError(err, "hipMemcpy");
+    err = hipMemcpy(y_dev, y.data(), y.size() * sizeof(float), hipMemcpyHostToDevice); checkError(err, "hipMemcpy");
 
-    hipLaunchKernelGGL(saxpy, dim3(num_blocks), dim3(num_threads), 0, 0, a, x_dev, y_dev);
+    hipLaunchKernelGGL(saxpy, dim3(num_blocks), dim3(num_threads), 0, 0, a, x_dev, y_dev); checkError(hipGetLastError(), "hipKernelLaunchGGL");
 
     std::transform(std::execution::par_unseq, x.cbegin(), x.cbegin(), y.cbegin(), x.begin(),
         [=](const float& x, const float& y){ return a * x + y; }
     );
 
-    hipMemcpy(y.data(), y_dev, y.size() * sizeof(float), hipMemcpyDeviceToHost);
+    err = hipMemcpy(y.data(), y_dev, y.size() * sizeof(float), hipMemcpyDeviceToHost); checkError(err, "hipMemcpy");
 
     if (std::equal(x.cbegin(), x.cend(), y.cbegin()))
         std::cerr << "Validation failed.";
     else
         std::cout << "Validation passed.";
 
-    hipFree(x_dev);
-    hipFree(y_dev);
+    err = hipFree(x_dev); checkError(err, "hipFree");
+    err = hipFree(y_dev); checkError(err, "hipFree");
 
     return 0;
 }

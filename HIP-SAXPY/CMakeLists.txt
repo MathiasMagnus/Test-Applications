@@ -6,14 +6,22 @@ project(HIP-SAXPY
   LANGUAGES CXX
 )
 
-find_package(hip_cpu_rt REQUIRED)
+option(USE_HIP_CPU "Prefer HIP-CPU runtime instead of HW acceleration" OFF)
 
-add_executable(${PROJECT_NAME}
-  Main.cpp
-)
+set(AMDGPU_TARGETS "gfx803" CACHE STRING "List of specific machine types for library to target")
+
+if(USE_HIP_CPU)
+  find_package(hip_cpu_rt REQUIRED)
+else()
+  find_package(hip REQUIRED CONFIG)
+endif()
+
+add_executable(${PROJECT_NAME} Main.cpp)
 
 target_link_libraries(${PROJECT_NAME}
-  hip_cpu_rt::hip_cpu_rt
+  PRIVATE
+    $<$<BOOL:${USE_HIP_CPU}>:hip_cpu_rt::hip_cpu_rt>
+    $<$<NOT:$<BOOL:${USE_HIP_CPU}>>:hip::device>
 )
 
 target_compile_features(${PROJECT_NAME}
