@@ -5,7 +5,6 @@
 #include <random>
 #include <iostream>
 #include <algorithm>
-#include <execution>
 
 void checkError(hipError_t err, const char* name)
 {
@@ -58,7 +57,7 @@ int main()
 
     hipLaunchKernelGGL(saxpy, dim3(num_blocks), dim3(num_threads), 0, 0, a, x_dev, y_dev); checkError(hipGetLastError(), "hipKernelLaunchGGL");
 
-    std::transform(std::execution::par_unseq, x.cbegin(), x.cbegin(), y.cbegin(), x.begin(),
+    std::transform(x.cbegin(), x.cbegin(), y.cbegin(), x.begin(),
         [=](const float& x, const float& y){ return a * x + y; }
     );
 
