@@ -1,0 +1,52 @@
+name: Windows
+
+on: [push, pull_request]
+
+jobs:
+  compatibility:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        VER: [v143]
+        GEN: [Visual Studio 17 2022]
+        BIN: [x64, x86]
+
+    steps:
+    - name: Checkout Test-Applications
+      uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      shell: pwsh
+      run: |
+        # Parallelize MSBuild across projects
+        [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
+
+    - name: Configure
+      shell: pwsh
+      run: |
+        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        & cmake `
+          -G '${{matrix.GEN}}' `
+          -A ${BIN} `
+          -T ${{matrix.VER}} `
+          -S "${env:GITHUB_WORKSPACE}" `
+          -B "${env:GITHUB_WORKSPACE}\build"
+
+    - name: Build
+      shell: pwsh
+      run: |
+        & cmake `
+          --build "${env:GITHUB_WORKSPACE}\build" `
+          --config Release `
+          -- `
+          /verbosity:minimal `
+          /maxCpuCount `
+          /noLogo
+
+    - name: Install
+      shell: pwsh
+      run: |
+        & cmake `
+          --install "${env:GITHUB_WORKSPACE}\build" `
+          --prefix "${env:GITHUB_WORKSPACE}\install" `
+          --config Release
