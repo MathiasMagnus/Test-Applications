@@ -29,14 +29,14 @@ jobs:
           -G '${{matrix.GEN}}' `
           -A ${BIN} `
           -T ${{matrix.VER}} `
-          -S "${env:GITHUB_WORKSPACE}" `
-          -B "${env:GITHUB_WORKSPACE}\build"
+          -S "${env:GITHUB_WORKSPACE}\CPP-Filesystem" `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build"
 
     - name: Build
       shell: pwsh
       run: |
         & cmake `
-          --build "${env:GITHUB_WORKSPACE}\build" `
+          --build "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
           --config Release `
           -- `
           /verbosity:minimal `
@@ -47,6 +47,6 @@ jobs:
       shell: pwsh
       run: |
         & cmake `
-          --install "${env:GITHUB_WORKSPACE}\build" `
-          --prefix "${env:GITHUB_WORKSPACE}\install" `
+          --install "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
+          --prefix "${env:GITHUB_WORKSPACE}\CPP-Filesystem\install" `
           --config Release
