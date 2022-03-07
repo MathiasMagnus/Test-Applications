@@ -65,8 +65,8 @@ jobs:
           -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package"
 
     - name: Release Source
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          draft: true
-          files: "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package\CPP-Filesystem-0.1.1-Source.zip"
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        draft: true
+        files: "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package\CPP-Filesystem-0.1.1-Source.zip"
