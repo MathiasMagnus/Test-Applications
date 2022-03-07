@@ -1,0 +1,90 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+name: Create Release
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        VER: [v143]
+        GEN: [Visual Studio 17 2022]
+        BIN: [x64, x86]
+
+    steps:
+    - name: Checkout Test-Applications
+      uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      shell: pwsh
+      run: |
+        # Parallelize MSBuild across projects
+        [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
+
+    - name: Configure
+      shell: pwsh
+      run: |
+        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        & cmake `
+          -G '${{matrix.GEN}}' `
+          -A ${BIN} `
+          -T ${{matrix.VER}} `
+          -S "${env:GITHUB_WORKSPACE}\CPP-Filesystem" `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build"
+          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/"
+
+    - name: Build
+      shell: pwsh
+      run: |
+        & cmake `
+          --build "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
+          --config Release `
+          -- `
+          /verbosity:minimal `
+          /maxCpuCount `
+          /noLogo
+
+    - name: Install
+      shell: pwsh
+      run: |
+        & cmake `
+          --install "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
+          --prefix "${env:GITHUB_WORKSPACE}\CPP-Filesystem\install" `
+          --config Release
+
+    - name: Source Package
+      shell: pwsh
+      run: |
+        & cpack `
+          --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
+          -G ZIP `
+          -C Release `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package" `
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          Changes in this Release
+          - Initial test release
+        draft: true
+        prerelease: false
+
+      - name: Upload Release Assets
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package\CPP-Filesystem-0.1.1-Source.zip"
+          asset_name: CPP-Filesystem-0.1.1-Source.zip
+          asset_content_type: application/zip

@@ -50,3 +50,5 @@ jobs:
           --install "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
           --prefix "${env:GITHUB_WORKSPACE}\CPP-Filesystem\install" `
           --config Release
+
+    - name: Release
