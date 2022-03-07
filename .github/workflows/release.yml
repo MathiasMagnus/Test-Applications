@@ -33,7 +33,7 @@ jobs:
           -A ${BIN} `
           -T ${{matrix.VER}} `
           -S "${env:GITHUB_WORKSPACE}\CPP-Filesystem" `
-          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build"
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
           -D CPACK_SOURCE_IGNORE_FILES="/\\.git/"
 
     - name: Build
