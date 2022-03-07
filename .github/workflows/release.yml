@@ -62,7 +62,7 @@ jobs:
           --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
           -G ZIP `
           -C Release `
-          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package" `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package"
 
     - name: Create Release
       id: create_release
