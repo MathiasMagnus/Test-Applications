@@ -6,7 +6,7 @@ on:
 name: Create Release
 
 jobs:
-  windows:
+  windows-binary:
     runs-on: windows-2022
     strategy:
       matrix:
@@ -54,6 +54,54 @@ jobs:
           --install "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
           --prefix "${env:GITHUB_WORKSPACE}\CPP-Filesystem\install" `
           --config Release
+
+    - name: Package Source
+      shell: pwsh
+      run: |
+        & cpack `
+          --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
+          -G ZIP `
+          -C Release `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package"
+        Rename-Item "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package\CPP-Filesystem-0.1.1-Source.zip" "CPP-Filesystem-0.1.1-${{matrix.BIN}}.zip"
+
+    - name: Release Source
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        draft: true
+        files: |
+          "CPP-Filesystem/package/CPP-Filesystem-0.1.1-Source.zip"
+
+  windows-source:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        VER: [v143]
+        GEN: [Visual Studio 17 2022]
+        BIN: [x64]
+
+    steps:
+    - name: Checkout Test-Applications
+      uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      shell: pwsh
+      run: |
+        # Parallelize MSBuild across projects
+        [Environment]::SetEnvironmentVariable('UseMultiToolTask', 'true', [EnvironmentVariableTarget]::User)
+
+    - name: Configure
+      shell: pwsh
+      run: |
+        $BIN = if('${{matrix.BIN}}' -eq 'x86') {'Win32'} else {'x64'}
+        & cmake `
+          -G '${{matrix.GEN}}' `
+          -A ${BIN} `
+          -T ${{matrix.VER}} `
+          -S "${env:GITHUB_WORKSPACE}\CPP-Filesystem" `
+          -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build" `
+          -D CPACK_SOURCE_IGNORE_FILES="/\\.git/"
 
     - name: Package Source
       shell: pwsh
