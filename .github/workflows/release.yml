@@ -60,7 +60,7 @@ jobs:
       run: |
         $BIN = if('${{matrix.BIN}}' -eq 'x86') {'win32'} else {'win64'}
         & cpack `
-          --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
+          --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackConfig.cmake" `
           -G ZIP `
           -C Release `
           -B "${env:GITHUB_WORKSPACE}\CPP-Filesystem\package"
