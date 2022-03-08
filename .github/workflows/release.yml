@@ -72,7 +72,7 @@ jobs:
       with:
         draft: true
         files: |
-          "CPP-Filesystem/package/*.zip"
+          "CPP-Filesystem/package/CPP-Filesystem-0.1.1-${{matrix.BIN}}.zip"
 
   windows-source:
     runs-on: windows-2022
