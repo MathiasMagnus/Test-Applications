@@ -22,3 +22,5 @@ source_group ("Sources" FILES ${Files_SRCS})
 install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION bin
 )
+
+include(CPack)
