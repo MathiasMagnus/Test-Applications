@@ -96,9 +96,10 @@ jobs:
     - name: Package Source
       shell: pwsh
       run: |
+        $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
-          -G (if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}) `
+          -G $Generator `
           -C Release `
           -B "${env:GITHUB_WORKSPACE}/CPP-Filesystem/package"
 
