@@ -98,7 +98,7 @@ jobs:
       run: |
         $Generator = if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}
         & cpack `
-          --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
+          --config "${env:GITHUB_WORKSPACE}/CPP-Filesystem/build/CPackSourceConfig.cmake" `
           -G $Generator `
           -C Release `
           -B "${env:GITHUB_WORKSPACE}/CPP-Filesystem/package"
