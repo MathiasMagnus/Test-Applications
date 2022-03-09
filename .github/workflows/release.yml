@@ -88,6 +88,8 @@ jobs:
     - name: Configure
       shell: pwsh
       run: |
+        Get-ChildItem Env:/
+        Get-ChildItem "${env:GITHUB_WORKSPACE}/CPP-Filesystem/package"
         & cmake `
           -S "${env:GITHUB_WORKSPACE}/CPP-Filesystem" `
           -B "${env:GITHUB_WORKSPACE}/CPP-Filesystem/build" `
@@ -96,8 +98,6 @@ jobs:
     - name: Package Source
       shell: pwsh
       run: |
-        Get-ChildItem Env:/
-        Get-ChildItem "${env:GITHUB_WORKSPACE}/CPP-Filesystem"
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
           -G (if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}) `
