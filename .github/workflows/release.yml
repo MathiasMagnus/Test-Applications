@@ -96,6 +96,8 @@ jobs:
     - name: Package Source
       shell: pwsh
       run: |
+        Get-ChildItem Env:/
+        Get-ChildItem "${env:GITHUB_WORKSPACE}/CPP-Filesystem"
         & cpack `
           --config "${env:GITHUB_WORKSPACE}\CPP-Filesystem\build\CPackSourceConfig.cmake" `
           -G (if('${{matrix.OS}}' -match 'windows') {'ZIP'} else {'TGZ'}) `
