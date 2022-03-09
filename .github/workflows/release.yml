@@ -91,7 +91,7 @@ jobs:
         & cmake `
           -S "${env:GITHUB_WORKSPACE}/CPP-Filesystem" `
           -B "${env:GITHUB_WORKSPACE}/CPP-Filesystem/build" `
-          -D CPACK_SOURCE_PACKAGE_FILE_NAME="${env:GITHUB_REF_NAME}"
+          -D CPACK_SOURCE_PACKAGE_FILE_NAME="${env:GITHUB_REF_NAME}" `
           -D CPACK_SOURCE_IGNORE_FILES="/\\.git/"
 
     - name: Package Source
