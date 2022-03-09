@@ -89,7 +89,8 @@ jobs:
       shell: pwsh
       run: |
         Get-ChildItem Env:/
-        Get-ChildItem "${env:GITHUB_WORKSPACE}/CPP-Filesystem/package"
+        Get-ChildItem "${env:GITHUB_WORKSPACE}"
+        Get-ChildItem "${env:GITHUB_WORKSPACE}/CPP-Filesystem"
         & cmake `
           -S "${env:GITHUB_WORKSPACE}/CPP-Filesystem" `
           -B "${env:GITHUB_WORKSPACE}/CPP-Filesystem/build" `
