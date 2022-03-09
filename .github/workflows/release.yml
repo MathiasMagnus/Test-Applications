@@ -110,4 +110,4 @@ jobs:
       with:
         draft: true
         files: |
-          CPP-Filesystem/package/${{ env.GITHUB_REF_NAME }}.*
+          CPP-Filesystem/package/${{ github.ref }}.*
