@@ -56,13 +56,13 @@ int main(int argc, char* argv[])
 		cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
 
 		// Load program source
-		std::ifstream source_file{ kernel_location };
+		std::ifstream source_file{ std::filesystem::canonical(argv[0]).parent_path().append("saxpy.cl") };
 		if (!source_file.is_open())
-			throw std::runtime_error{ std::string{ "Cannot open kernel source: " } + kernel_location };
+			throw std::runtime_error{ std::string{ "Cannot open kernel source." } };
 
 		// Create program and kernel
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
-			                                       std::istreambuf_iterator<char>{} } };
+		                                           std::istreambuf_iterator<char>{} } };
 
 		program.build({ device });
 
@@ -70,20 +70,20 @@ int main(int argc, char* argv[])
 
 		// Init computation
 		const std::size_t chainlength = std::size_t(std::pow(2u, 20u)); // 1M, cast denotes floating-to-integral conversion,
-																		//     promises no data is lost, silences compiler warning
-		std::valarray<cl_float> vec_x(chainlength),
-			                    vec_y(chainlength);
+		                                                                //     promises no data is lost, silences compiler warning
+		std::vector<cl_float> vec_x(chainlength),
+		                      vec_y(chainlength);
 		cl_float a = 2.0;
 
 		// Fill arrays with random values between 0 and 100
 		auto prng = [engine = std::default_random_engine{},
-			         distribution = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 }]() mutable { return distribution(engine); };
+		             distribution = std::uniform_real_distribution<cl_float>{ -100.0, 100.0 }]() mutable { return distribution(engine); };
 
 		std::generate_n(std::begin(vec_x), chainlength, prng);
 		std::generate_n(std::begin(vec_y), chainlength, prng);
 
 		cl::Buffer buf_x{ queue, std::begin(vec_x), std::end(vec_x), true },
-			       buf_y{ queue, std::begin(vec_y), std::end(vec_y), false };
+		           buf_y{ queue, std::begin(vec_y), std::end(vec_y), false };
 
 		// Launch kernels
 		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
@@ -93,11 +93,12 @@ int main(int argc, char* argv[])
 		auto start = std::chrono::high_resolution_clock::now();
 
 		std::transform(std::execution::par_unseq,
-                       std::begin(vec_x), std::end(vec_x),
-                       std::begin(vec_y), std::begin(vec_y),
+		               vec_x.cbegin(), vec_x.cend(),
+		               vec_y.cbegin(),
+		               vec_y.begin(),
 		               [=](const cl_float& x, const cl_float& y)
 		{
-            return a * x + y;
+			return a * x + y;
 		});
 
 		auto finish = std::chrono::high_resolution_clock::now();
@@ -119,10 +120,10 @@ int main(int argc, char* argv[])
 
 		// Validate (compute saxpy on host and match results)
 		auto markers = std::mismatch(std::begin(vec_x), std::end(vec_x),
-			                         std::begin(vec_y), std::end(vec_y));
+		                             std::begin(vec_y), std::end(vec_y));
 
 		if (markers.first != std::end(vec_x) ||
-			markers.second != std::end(vec_y)) throw std::runtime_error{ "Validation failed." };
+		    markers.second != std::end(vec_y)) throw std::runtime_error{ "Validation failed." };
 
 	}
 	catch (TCLAP::ArgException& e) // If cli parsing error occurs
@@ -149,13 +150,11 @@ int main(int argc, char* argv[])
 	catch (cl::Error& error) // If any OpenCL error occurs
 	{
 		std::cerr << error.what() << "(" << error.err() << ")" << std::endl;
-
 		std::exit(error.err());
 	}
 	catch (std::exception& error) // If STL/CRT error occurs
 	{
 		std::cerr << error.what() << std::endl;
-
 		std::exit(EXIT_FAILURE);
 	}
 
