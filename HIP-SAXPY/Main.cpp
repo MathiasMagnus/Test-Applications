@@ -23,15 +23,16 @@ void saxpy(float a, float* x, float* y)
     y[tid] = a * x[tid] + y[tid];
 }
 
-int main()
+int main(int argc, char** argv)
 {
     constexpr std::size_t num_threads = 128;
     constexpr std::size_t num_blocks = 32;
     constexpr std::size_t N = num_threads * num_blocks;
 
+    hipSetDevice(argc > 1 ? std::atoi(argv[1]) : 0);
     hipDeviceProp_t prop;
     hipError_t err;
-    err = hipGetDeviceProperties(&prop, 0);
+    err = hipGetDeviceProperties(&prop, argc > 1 ? std::atoi(argv[1]) : 0);
     checkError(err, "hipGetDeviceProperties");
     std::cout << "Device name: " << prop.name << std::endl;
 
