@@ -1,23 +1,33 @@
-// CL-CPP includes
-#include <CL-CPP.hpp>
+// OpenCL includes
+#include <CL/opencl.hpp>
 
+// C++ Standard includes
+#include <vector>
+#include <algorithm>
+#include <iostream>
+#include <fstream>
+#include <ios>
+#include <chrono>
+#include <random>
+#include <filesystem>
 #include <execution>
+
+namespace cl
+{
+	namespace util
+	{
+		template <cl_int From, cl_int To, typename Dur = std::chrono::nanoseconds>
+		auto get_duration(cl::Event& ev)
+		{
+			return std::chrono::duration_cast<Dur>(std::chrono::nanoseconds{ ev.getProfilingInfo<To>() - ev.getProfilingInfo<From>() });
+		}
+	}
+}
 
 int main(int argc, char* argv[])
 {
 	try // Any error results in program termination
 	{
-		TCLAP::CmdLine cli{ "Test-Applications: CL-CPP" };
-
-		TCLAP::ValueArg<std::size_t> plat_id{ "", "platform", "Platform ID to use", false, 0, "[unsigned int]", cli };
-		TCLAP::ValueArg<std::size_t> dev_id{ "", "device", "Device ID to use", false, 0, "[unsigned int]", cli };
-
-		std::vector<std::string> valid_dev_strings{ "cpu", "gpu", "acc" };
-		TCLAP::ValuesConstraint<std::string> valid_dev_constraint{ valid_dev_strings };
-		TCLAP::ValueArg<std::string> dev_type_arg{ "", "type","Device type to use", false, "all", &valid_dev_constraint , cli, };
-
-		cli.parse(argc, argv);
-
 		std::vector<cl::Platform> platforms;
 		cl::Platform::get(&platforms);
 
@@ -27,30 +37,21 @@ int main(int argc, char* argv[])
 		for (const auto& platform : platforms)
 			std::cout << "\t" << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
-		cl::Platform plat = platforms.at(plat_id.getValue());
-		std::cout << "Selected platform: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
-
-		auto dev_type = [](std::string in) -> cl_device_type
-		{
-			if (in == "all") return CL_DEVICE_TYPE_ALL;
-			else if (in == "cpu") return CL_DEVICE_TYPE_CPU;
-			else if (in == "gpu") return CL_DEVICE_TYPE_GPU;
-			else if (in == "acc") return CL_DEVICE_TYPE_ACCELERATOR;
-			else throw std::logic_error{ "Unkown device type after cli parse. Should not have happened." };
-		}(dev_type_arg.getValue());
+		cl::Platform platform = platforms.at(argc > 1 ? std::atoi(argv[1]) : 0);
+		std::cout << "Selected platform: " << platform.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
 
 		std::vector<cl::Device> devices;
-		plat.getDevices(dev_type, &devices);
+		platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
 		std::cout << "Found device" << (devices.size() > 1 ? "s" : "") << ":\n";
 		for (const auto& device : devices)
 			std::cout << "\t" << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
-		cl::Device device = devices.at(0);
+		cl::Device device = devices.at(argc > 2 ? std::atoi(argv[2]) : 0);
 		std::cout << "Selected device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
 
 		// Create context and queue
-		std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((plat)()), 0 };
+		std::vector<cl_context_properties> props{ CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>((platform)()), 0 };
 		cl::Context context{ devices, props.data() };
 
 		cl::CommandQueue queue{ context, device, cl::QueueProperties::Profiling };
@@ -58,7 +59,7 @@ int main(int argc, char* argv[])
 		// Load program source
 		std::ifstream source_file{ std::filesystem::canonical(argv[0]).parent_path().append("saxpy.cl") };
 		if (!source_file.is_open())
-			throw std::runtime_error{ std::string{ "Cannot open kernel source." } };
+			throw std::runtime_error{ std::string{ "Cannot open kernel source." } + std::filesystem::canonical(argv[0]).parent_path().append("saxpy.cl").string() };
 
 		// Create program and kernel
 		cl::Program program{ context, std::string{ std::istreambuf_iterator<char>{ source_file },
@@ -86,8 +87,11 @@ int main(int argc, char* argv[])
 		           buf_y{ queue, std::begin(vec_y), std::end(vec_y), false };
 
 		// Launch kernels
-		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength } }, a, buf_x, buf_y) };
+		cl::Event kernel_event{ saxpy(cl::EnqueueArgs{ queue, cl::NDRange{ chainlength }, cl::NullRange }, a, buf_x, buf_y) };
 		kernel_event.wait();
+
+		clReleaseEvent(kernel_event());
+		cl::Event another_event = kernel_event;
 
 		// Compute validation set on host
 		auto start = std::chrono::high_resolution_clock::now();
@@ -125,11 +129,6 @@ int main(int argc, char* argv[])
 		if (markers.first != std::end(vec_x) ||
 		    markers.second != std::end(vec_y)) throw std::runtime_error{ "Validation failed." };
 
-	}
-	catch (TCLAP::ArgException& e) // If cli parsing error occurs
-	{
-		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
-		std::exit(EXIT_FAILURE);
 	}
 	catch (cl::BuildError& error) // If kernel failed to build
 	{
