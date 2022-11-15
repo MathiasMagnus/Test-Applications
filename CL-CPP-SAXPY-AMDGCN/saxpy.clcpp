@@ -1,0 +1,7 @@
+template <typename T> T axpy(T a, T x, T y) { return a * x + y; }
+
+kernel void saxpy(float a, global float *x, global float *y) {
+  int gid = get_global_id(0);
+
+  y[gid] = axpy(a, x[gid], y[gid]);
+}
